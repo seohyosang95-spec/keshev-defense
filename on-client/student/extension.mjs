@@ -9,18 +9,20 @@ function formatMode(mode) {
 }
 
 function formatDeviceStatus(status) {
-  if (status === 'compliant') return '보안 기준 충족';
-  if (status === 'noncompliant') return '보안 기준 미충족';
-  if (status === 'unknown') return '확인 불가';
-  return status || '확인 불가';
+  const code = status || 'unknown';
+  if (status === 'compliant') return `보안 기준 충족(${code})`;
+  if (status === 'noncompliant') return `보안 기준 미충족(${code})`;
+  if (status === 'unknown') return `확인 불가(${code})`;
+  return `확인 불가(${code})`;
 }
 
 function formatSessionStatus(status) {
-  if (status === 'active') return '활성';
-  if (status === 'expired') return '만료';
-  if (status === 'revoked') return '철회됨';
-  if (status === 'unknown') return '확인 불가';
-  return status || '확인 불가';
+  const code = status || 'unknown';
+  if (status === 'active') return `활성(${code})`;
+  if (status === 'expired') return `만료(${code})`;
+  if (status === 'revoked') return `철회됨(${code})`;
+  if (status === 'unknown') return `확인 불가(${code})`;
+  return `확인 불가(${code})`;
 }
 
 export function createStudentView() {
