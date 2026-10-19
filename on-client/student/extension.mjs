@@ -26,30 +26,29 @@ function formatSessionStatus(status) {
 }
 
 function formatDecision(decision) {
-  const code = decision || 'unknown';
   if (decision === 'allow') {
     return {
-      text: `접근 허용(${code})`,
+      text: '접근 허용(allow)',
       isAllow: true,
       note: '서버가 이 앱 접속을 허용했습니다.'
     };
   }
   if (decision === 'deny') {
     return {
-      text: `접근 거부(${code})`,
+      text: '접근 거부(deny)',
       isAllow: false,
       note: '서버가 이 앱 접속을 거부(차단)했습니다.'
     };
   }
   if (decision === 'challenge') {
     return {
-      text: `추가 확인 필요(${code})`,
+      text: '추가 확인 필요(challenge)',
       isAllow: false,
       note: '추가 인증 또는 확인이 필요합니다. 앱이 확인 절차를 대신하지 않습니다.'
     };
   }
   return {
-    text: `확인 불가(${code})`,
+    text: '확인 불가(unknown)',
     isAllow: false,
     note: '판정을 확인할 수 없습니다 (접근 허용되지 않음).'
   };
