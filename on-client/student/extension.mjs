@@ -672,7 +672,143 @@ export function createStudentView() {
       if (mode) appendParagraph(`모드: ${formatMode(mode)}`);
       return container;
     },
-    renderVulnerabilities() { return '학생 구현 대기: 정확한 설치 버전·OSV 출처·조회 시각·부분 결과·조회 실패를 구분하세요.'; },
+    renderVulnerabilities(input = {}) {
+      const { status, mode, data, error } = input;
+      const container = document.createElement('div');
+      container.className = 'student-vulnerabilities';
+      container.setAttribute('aria-live', 'polite');
+
+      const appendParagraph = (text) => {
+        const paragraph = document.createElement('p');
+        paragraph.textContent = text;
+        container.appendChild(paragraph);
+      };
+
+      const appendFieldTo = (parent, label, value) => {
+        if (value === undefined || value === null || value === '') return;
+        const paragraph = document.createElement('p');
+        paragraph.textContent = `${label}: ${value}`;
+        parent.appendChild(paragraph);
+      };
+
+      const appendField = (label, value) => appendFieldTo(container, label, value);
+
+      const appendMode = () => {
+        if (mode) appendParagraph(`모드: ${formatMode(mode)}`);
+      };
+
+      if (!status || status === 'idle') {
+        appendParagraph('취약점 조회 전입니다(idle).');
+        appendMode();
+        return container;
+      }
+
+      if (status === 'loading') {
+        appendParagraph('취약점 정보를 조회 중입니다(loading). 이전 조회 결과를 현재 결과로 표시하지 않습니다.');
+        appendMode();
+        return container;
+      }
+
+      if (status === 'error') {
+        const code = typeof error?.code === 'string' && error.code ? error.code : 'VULNERABILITY_LOOKUP_UNVERIFIED';
+        const message = typeof error?.message === 'string' && error.message
+          ? error.message
+          : '패키지 조회 결과를 확인할 수 없습니다.';
+        appendParagraph(`취약점 조회 실패(error): ${message}`);
+        appendParagraph(`오류 코드(error.code): ${code}`);
+        appendParagraph('조회 실패는 취약점 없음이 아닙니다. 이전 조회 결과를 현재 결과로 표시하지 않습니다.');
+        appendMode();
+        return container;
+      }
+
+      if (status !== 'ok') {
+        appendParagraph('취약점 조회 상태를 확인할 수 없습니다.');
+        appendMode();
+        return container;
+      }
+
+      const scanStatusText = {
+        complete: '모두 조회 완료(complete)',
+        partial: '일부 조회 실패(partial)',
+        not_checked: '아직 조회 안 함(not_checked)',
+        not_configured: '조회 준비 미완료(not_configured)',
+        unverifiable: 'lock 파일 확인 불가(unverifiable)',
+      };
+      const scanStatus = data?.status;
+      appendParagraph(scanStatusText[scanStatus] || `전체 조회 상태 확인 불가(${scanStatus || 'unknown'})`);
+      appendField('lockfileVersion', data?.lockfileVersion);
+      appendField('lockfileHash', data?.lockfileHash);
+      appendField('checkedAt', data?.checkedAt);
+
+      const packages = Array.isArray(data?.packages) ? data.packages : [];
+      if (packages.length === 0) {
+        if (scanStatus === 'not_configured') {
+          appendParagraph('프로젝트 설정이 없어 조회 대상 패키지가 없습니다.');
+        } else if (scanStatus === 'not_checked') {
+          appendParagraph('승인된 공개 패키지 조회 대상이 없어 아직 조회하지 않았습니다.');
+        } else if (scanStatus === 'unverifiable') {
+          appendParagraph('lock 파일을 확인할 수 없어 패키지 조회 결과를 표시할 수 없습니다.');
+        } else if (scanStatus === 'partial') {
+          appendParagraph('일부 조회 실패로 확인된 패키지 결과가 없습니다. 취약점 없음으로 판단하지 않습니다.');
+        } else {
+          appendParagraph('표시할 패키지 조회 결과가 없습니다.');
+        }
+        appendMode();
+        return container;
+      }
+
+      const packageStatusText = (packageStatus, vulnerabilityCount) => {
+        if (packageStatus === 'known_vulnerabilities') return '알려진 항목 있음(known_vulnerabilities)';
+        if (packageStatus === 'none_found') return '알려진 항목 없음(none_found) — 조회 시점 기준이며 전체 안전을 보장하지 않습니다.';
+        if (packageStatus === 'unverifiable' && vulnerabilityCount > 0) return '일부 확인 · 전체 조회 확인 불가(unverifiable)';
+        if (packageStatus === 'unverifiable') return '조회 확인 불가(unverifiable)';
+        return `패키지 조회 상태 확인 불가(${packageStatus || 'unknown'})`;
+      };
+
+      packages.forEach((packageInfo) => {
+        const row = document.createElement('div');
+        row.className = 'student-package-row';
+        if (typeof packageInfo?.name === 'string' && packageInfo.name) {
+          row.setAttribute('data-student-package-name', packageInfo.name);
+        }
+        if (typeof packageInfo?.version === 'string' && packageInfo.version) {
+          row.setAttribute('data-student-package-version', packageInfo.version);
+        }
+
+        appendFieldTo(row, '패키지(name)', packageInfo?.name);
+        appendFieldTo(row, '설치 버전(version)', packageInfo?.version);
+        const vulnerabilities = Array.isArray(packageInfo?.vulnerabilities) ? packageInfo.vulnerabilities : [];
+        const statusParagraph = document.createElement('p');
+        statusParagraph.textContent = `조회 상태(status): ${packageStatusText(packageInfo?.status, vulnerabilities.length)}`;
+        row.appendChild(statusParagraph);
+        appendFieldTo(row, '출처(source)', packageInfo?.source);
+        appendFieldTo(row, '패키지 조회 시각(checkedAt)', packageInfo?.checkedAt);
+
+        const vulnerabilityTitle = document.createElement('p');
+        vulnerabilityTitle.textContent = '취약점 항목';
+        row.appendChild(vulnerabilityTitle);
+        if (vulnerabilities.length === 0) {
+          const noFinding = document.createElement('p');
+          noFinding.textContent = packageInfo?.status === 'none_found'
+            ? '알려진 취약점 항목 없음(none_found). 조회 시점의 알려진 항목이 없다는 뜻이며 전체 안전을 보장하지 않습니다.'
+            : '취약점 항목을 확인할 수 없습니다.';
+          row.appendChild(noFinding);
+        } else {
+          const findingList = document.createElement('ul');
+          vulnerabilities.forEach((vulnerability) => {
+            const item = document.createElement('li');
+            item.textContent = `id: ${vulnerability?.id || '확인 불가'} · modified: ${vulnerability?.modified || '확인 불가'}`;
+            findingList.appendChild(item);
+          });
+          row.appendChild(findingList);
+        }
+
+        container.appendChild(row);
+      });
+
+      appendMode();
+      return container;
+    },
     renderAiConnection(input = {}) {
       const { status, mode, data, error, checkedAt } = input;
       const container = document.createElement('div');
