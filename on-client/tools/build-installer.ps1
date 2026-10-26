@@ -60,5 +60,23 @@ SHA-256: $($hash.Hash)
 실행에 필요한 Node.js 22~24 계열은 받는 PC에 별도로 준비해야 합니다.
 "@ | Set-Content -LiteralPath $guideFile -Encoding UTF8
 "$($setup.Name)`nSHA-256: $($hash.Hash)`n" | Set-Content -LiteralPath $hashFile -Encoding UTF8
+$startHereFile = Join-Path $output 'START-HERE.md'
+@"
+# 케셰브 처음 설치 안내
+
+설치 파일: $($setup.Name)
+SHA-256: $($hash.Hash)
+
+## 순서
+
+1. Node.js 22~24 계열을 먼저 설치합니다. 수업 기준 권장 버전은 24.19.0입니다. 공식 다운로드: https://nodejs.org/en/download
+2. 이 폴더의 `$($setup.Name)`를 실행합니다.
+3. 설치가 끝나면 바탕화면 또는 시작 메뉴의 「케셰브」 바로가기를 엽니다.
+4. 브라우저에서 `http://127.0.0.1:5189/`가 열리고 「보호 현황」이 보이는지 확인합니다.
+
+설치 프로그램은 앱 파일과 실행 안내를 담아 옮깁니다. Node.js는 받는 PC에 별도로 준비해야 합니다. 보안 기능을 끄지 말고, 설치가 막히면 차단 메시지 전체를 담당자에게 전달합니다.
+
+앱을 실행한 뒤에는 화면 상단의 「케셰브 실행 안내」 카드에서도 이 순서를 다시 볼 수 있습니다.
+"@ | Set-Content -LiteralPath $startHereFile -Encoding UTF8
 Write-Output "설치 프로그램: $($setup.FullName)"
 Write-Output "SHA-256: $($hash.Hash)"

@@ -370,13 +370,14 @@ export function createStudentView({ api, onChange } = {}) {
 
     const intro = document.createElement('p');
     intro.className = 'muted';
-    intro.textContent = '처음 보는 사람도 아래 순서만 따라 하면 앱을 실행하고 정상 여부를 확인할 수 있습니다.';
+    intro.textContent = '처음 설치하는 사람은 아래 순서대로 준비·설치·실행하면 됩니다. 설치 프로그램은 앱 파일만 담고 있으므로 Node.js는 먼저 준비해야 합니다.';
     section.appendChild(intro);
 
     const steps = document.createElement('ol');
     [
-      '설치 프로그램을 사용했다면 바탕화면 또는 시작 메뉴의 「케셰브」 바로가기를 엽니다.',
-      '설치 묶음을 직접 사용하는 경우 앱 폴더에서 launch-keshev.ps1을 실행합니다.',
+      'Windows에 Node.js 22~24 계열(수업 기준 24.19.0)을 설치하고 PowerShell 창을 새로 엽니다. 다운로드: https://nodejs.org/en/download',
+      '배포 폴더의 KeshevSetup-버전.exe를 실행하고 설치가 끝날 때까지 안내를 따릅니다.',
+      '바탕화면 또는 시작 메뉴의 「케셰브」 바로가기를 엽니다.',
       '브라우저에서 http://127.0.0.1:5189/ 을 열고 「보호 현황」과 학생 상태 영역이 보이는지 확인합니다.',
     ].forEach((text) => {
       const item = document.createElement('li');
