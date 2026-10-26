@@ -61,6 +61,62 @@ function formatSignedPercentPoints(value) {
   return `${value >= 0 ? '+' : ''}${value.toFixed(1)}%p`;
 }
 
+const LOCAL_OBSERVATION_SCHEMA = 'keshev.local-observation.v1';
+
+function validUnavailableArea(area) {
+  return isRecord(area) && area.status === 'unavailable' && typeof area.reasonCode === 'string' && typeof area.reason === 'string';
+}
+
+function validTextList(value, limit = 20) {
+  return Array.isArray(value) && value.length <= limit && value.every((item) => typeof item === 'string' && item.length <= 200);
+}
+
+function validLocalObservation(data) {
+  if (!isRecord(data) || data.schema !== LOCAL_OBSERVATION_SCHEMA || data.source !== 'local-read-only' || !isIsoDate(data.checkedAt)) return false;
+  const network = data.network;
+  const validNetwork = (isRecord(network) && network.status === 'measured' && ['connected', 'disconnected'].includes(network.connection)
+    && Array.isArray(network.adapters) && network.adapters.length <= 32 && network.adapters.every((adapter) => isRecord(adapter)
+      && typeof adapter.name === 'string' && adapter.name.length <= 200 && typeof adapter.status === 'string' && adapter.status.length <= 80
+      && typeof adapter.linkSpeed === 'string' && adapter.linkSpeed.length <= 80 && validTextList(adapter.ipv4)
+      && validTextList(adapter.gateway) && validTextList(adapter.dns))) || validUnavailableArea(network);
+  const firewall = data.firewall;
+  const validFirewall = (isRecord(firewall) && firewall.status === 'measured' && ['enabled', 'disabled', 'mixed'].includes(firewall.summary)
+    && Array.isArray(firewall.profiles) && firewall.profiles.length <= 8 && firewall.profiles.every((profile) => isRecord(profile)
+      && typeof profile.name === 'string' && profile.name.length <= 80 && typeof profile.enabled === 'boolean'
+      && typeof profile.defaultInboundAction === 'string' && profile.defaultInboundAction.length <= 80
+      && typeof profile.defaultOutboundAction === 'string' && profile.defaultOutboundAction.length <= 80)) || validUnavailableArea(firewall);
+  const validEvent = (event) => (isRecord(event) && event.status === 'measured' && ['System', 'Application'].includes(event.logName)
+    && Number.isSafeInteger(event.errorCount) && event.errorCount >= 0 && Number.isSafeInteger(event.warningCount) && event.warningCount >= 0
+    && Number.isSafeInteger(event.totalCount) && event.totalCount === event.errorCount + event.warningCount && event.windowHours === 24) || validUnavailableArea(event);
+  return validNetwork && validFirewall && Array.isArray(data.events) && data.events.length === 2 && data.events.every(validEvent);
+}
+
+function formatNetworkConnection(connection) {
+  if (connection === 'connected') return '연결됨';
+  if (connection === 'disconnected') return '연결 없음';
+  return '확인 불가';
+}
+
+function formatFirewallSummary(summary) {
+  if (summary === 'enabled') return '켜짐';
+  if (summary === 'disabled') return '꺼짐';
+  if (summary === 'mixed') return '일부 프로필 켜짐';
+  return '확인 불가';
+}
+
+function formatAdapterStatus(status) {
+  if (status === 'Up') return '연결됨';
+  if (status === 'Down') return '연결 안 됨';
+  return status || '확인 불가';
+}
+
+function formatSdpStatus(mode) {
+  if (mode === 'connected') return 'SDP 연결됨';
+  if (mode === 'demo') return 'SDP 예제 모드 · 실제 서버 연결 아님';
+  if (mode === 'disconnected') return 'SDP 미연결';
+  return 'SDP 연결 상태 확인 불가';
+}
+
 function formatDeviceStatus(status) {
   const code = status || 'unknown';
   if (status === 'compliant') return `보안 기준 충족(${code})`;
@@ -150,6 +206,8 @@ export function createStudentView({ api, onChange } = {}) {
   let systemMetrics = { status: 'loading' };
   let previousSystemMetrics = null;
   let metricsRequestId = 0;
+  let localObservation = { status: 'loading' };
+  let localObservationRequestId = 0;
 
   const rerender = () => {
     if (typeof onChange === 'function') onChange();
@@ -174,6 +232,27 @@ export function createStudentView({ api, onChange } = {}) {
       if (requestId === metricsRequestId) systemMetrics = { status: 'error', error: { code: 'NETWORK_ERROR', message: '내 PC 상태를 읽지 못했습니다.' } };
     }).finally(() => {
       if (requestId === metricsRequestId) rerender();
+    });
+  };
+
+  const loadLocalObservation = ({ initial = false } = {}) => {
+    const requestId = ++localObservationRequestId;
+    localObservation = { status: 'loading' };
+    if (!initial) rerender();
+    Promise.resolve().then(() => api?.get('/api/local-observation')).then((result) => {
+      if (requestId !== localObservationRequestId) return;
+      if (!result?.ok || !validLocalObservation(result.data)) {
+        localObservation = {
+          status: 'error',
+          error: result?.error || { code: 'CONTRACT_MISMATCH', message: 'PC 조회 응답 형식을 확인할 수 없습니다.' },
+        };
+        return;
+      }
+      localObservation = { status: 'ok', data: result.data, meta: result.meta };
+    }).catch(() => {
+      if (requestId === localObservationRequestId) localObservation = { status: 'error', error: { code: 'NETWORK_ERROR', message: 'PC 연결·기록을 읽지 못했습니다.' } };
+    }).finally(() => {
+      if (requestId === localObservationRequestId) rerender();
     });
   };
 
@@ -223,6 +302,136 @@ export function createStudentView({ api, onChange } = {}) {
     return card;
   };
 
+  const renderLocalObservation = (mode) => {
+    const section = document.createElement('section');
+    section.className = 'student-local-observation';
+    const heading = document.createElement('h3');
+    heading.textContent = '연결과 기록 · 읽기 전용 PC 조회';
+    section.appendChild(heading);
+    const note = document.createElement('p');
+    note.className = 'muted';
+    note.textContent = '네트워크·방화벽·Windows 기록은 이 PC에서 읽기만 합니다. Windows 경고·오류 건수는 침해나 공격 탐지 결과가 아닙니다. 값 옆 조회 시각을 확인하세요.';
+    section.appendChild(note);
+
+    if (localObservation.status === 'loading') {
+      const loading = document.createElement('p');
+      loading.textContent = '네트워크·방화벽·Windows 기록을 읽는 중입니다.';
+      section.appendChild(loading);
+    } else if (localObservation.status === 'error') {
+      const error = document.createElement('p');
+      error.textContent = `PC 조회를 불러오지 못했습니다: ${localObservation.error?.message || '확인 불가'}`;
+      section.appendChild(error);
+    } else if (localObservation.status === 'ok') {
+      const data = localObservation.data;
+      const grid = document.createElement('div');
+      grid.className = 'student-local-observation-grid';
+
+      const networkCard = document.createElement('article');
+      networkCard.className = 'student-local-observation-card';
+      const networkTitle = document.createElement('h4');
+      networkTitle.textContent = '네트워크 구성';
+      networkCard.appendChild(networkTitle);
+      if (data.network.status !== 'measured') {
+        const unavailable = document.createElement('p');
+        unavailable.textContent = `확인 불가 · ${data.network.reason}`;
+        networkCard.appendChild(unavailable);
+      } else {
+        const summary = document.createElement('p');
+        summary.className = 'student-local-observation-value';
+        summary.textContent = formatNetworkConnection(data.network.connection);
+        networkCard.appendChild(summary);
+        data.network.adapters.forEach((adapter) => {
+          const item = document.createElement('p');
+          const address = adapter.ipv4.length > 0 ? ` · IPv4 ${adapter.ipv4.join(', ')}` : '';
+          const gateway = adapter.gateway.length > 0 ? ` · 게이트웨이 ${adapter.gateway.join(', ')}` : '';
+          item.textContent = `${adapter.name}: ${formatAdapterStatus(adapter.status)}${adapter.linkSpeed ? ` · ${adapter.linkSpeed}` : ''}${address}${gateway}`;
+          networkCard.appendChild(item);
+        });
+        if (data.network.adapters.length === 0) {
+          const empty = document.createElement('p');
+          empty.textContent = '표시할 물리 네트워크 어댑터가 없습니다.';
+          networkCard.appendChild(empty);
+        }
+        if (data.network.note) {
+          const note = document.createElement('p');
+          note.className = 'muted';
+          note.textContent = data.network.note;
+          networkCard.appendChild(note);
+        }
+      }
+      grid.appendChild(networkCard);
+
+      const firewallCard = document.createElement('article');
+      firewallCard.className = 'student-local-observation-card';
+      const firewallTitle = document.createElement('h4');
+      firewallTitle.textContent = '방화벽 설정';
+      firewallCard.appendChild(firewallTitle);
+      if (data.firewall.status !== 'measured') {
+        const unavailable = document.createElement('p');
+        unavailable.textContent = `확인 불가 · ${data.firewall.reason}`;
+        firewallCard.appendChild(unavailable);
+      } else {
+        const summary = document.createElement('p');
+        summary.className = 'student-local-observation-value';
+        summary.textContent = `${formatFirewallSummary(data.firewall.summary)} · 읽기만 함`;
+        firewallCard.appendChild(summary);
+        data.firewall.profiles.forEach((profile) => {
+          const item = document.createElement('p');
+          item.textContent = `${profile.name}: ${profile.enabled ? '켜짐' : '꺼짐'} · 인바운드 ${profile.defaultInboundAction} · 아웃바운드 ${profile.defaultOutboundAction}`;
+          firewallCard.appendChild(item);
+        });
+      }
+      grid.appendChild(firewallCard);
+
+      const eventsCard = document.createElement('article');
+      eventsCard.className = 'student-local-observation-card';
+      const eventsTitle = document.createElement('h4');
+      eventsTitle.textContent = 'Windows 경고·오류';
+      eventsCard.appendChild(eventsTitle);
+      const period = document.createElement('p');
+      period.className = 'muted';
+      period.textContent = '최근 24시간 · 침해 판정 아님';
+      eventsCard.appendChild(period);
+      data.events.forEach((event) => {
+        const item = document.createElement('p');
+        if (event.status !== 'measured') item.textContent = `${event.reason}`;
+        else item.textContent = `${event.logName}: 경고 ${event.warningCount}건 · 오류 ${event.errorCount}건`;
+        eventsCard.appendChild(item);
+      });
+      grid.appendChild(eventsCard);
+
+      const sdpCard = document.createElement('article');
+      sdpCard.className = 'student-local-observation-card student-sdp-scope';
+      const sdpTitle = document.createElement('h4');
+      sdpTitle.textContent = 'SDP 서버 연결';
+      sdpCard.appendChild(sdpTitle);
+      const sdpValue = document.createElement('p');
+      sdpValue.className = 'student-local-observation-value';
+      sdpValue.textContent = formatSdpStatus(mode);
+      sdpCard.appendChild(sdpValue);
+      const sdpNote = document.createElement('p');
+      sdpNote.textContent = 'SDP 연결 상태는 이 PC의 로컬 조회 성공 여부와 별도로 표시합니다.';
+      sdpCard.appendChild(sdpNote);
+      grid.appendChild(sdpCard);
+
+      section.appendChild(grid);
+      const checkedAt = document.createElement('p');
+      checkedAt.className = 'muted';
+      const collectionLabel = data.collection === 'startup-snapshot' ? '앱 시작 시 읽기' : '직접 읽기';
+      checkedAt.textContent = `PC 조회 시각: ${formatMetricTime(data.checkedAt)} · 방식: ${collectionLabel}`;
+      section.appendChild(checkedAt);
+    }
+
+    const refresh = document.createElement('button');
+    refresh.type = 'button';
+    refresh.className = 'btn';
+    refresh.textContent = localObservation.status === 'loading' ? '조회 중…' : '연결·기록 결과 다시 읽기';
+    refresh.disabled = localObservation.status === 'loading';
+    refresh.addEventListener('click', () => loadLocalObservation());
+    section.appendChild(refresh);
+    return section;
+  };
+
   const renderSystemMetrics = () => {
     const section = document.createElement('section');
     section.className = 'student-system-metrics';
@@ -266,6 +475,7 @@ export function createStudentView({ api, onChange } = {}) {
   };
 
   loadSystemMetrics({ initial: true });
+  loadLocalObservation({ initial: true });
 
   return {
     renderIdentity(input = {}) {
@@ -761,6 +971,7 @@ export function createStudentView({ api, onChange } = {}) {
       container.className = 'student-status';
       container.setAttribute('aria-live', 'polite');
       container.appendChild(renderSystemMetrics());
+      container.appendChild(renderLocalObservation(mode));
 
       const appendHeading = (text) => {
         const heading = document.createElement('h3');
@@ -824,7 +1035,7 @@ export function createStudentView({ api, onChange } = {}) {
 
       const scopeNote = document.createElement('p');
       scopeNote.className = 'muted student-device-scope';
-      scopeNote.textContent = '기기·세션 상태는 제공된 연결 범위이며, CPU·메모리·디스크 실측은 이 앱의 로컬 OS 조회 결과입니다. 방화벽 상태는 측정하지 않습니다.';
+      scopeNote.textContent = '기기·세션·SDP 상태는 제공된 연결 범위이며, PC 조회 결과는 이 앱이 로컬 Windows에서 읽은 값입니다. 두 범위는 서로 대체하지 않습니다.';
       container.appendChild(scopeNote);
 
       appendHeading('위험 알림');

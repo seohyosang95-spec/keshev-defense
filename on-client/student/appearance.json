@@ -16,6 +16,8 @@
   ],
   "scope": {
     "deviceMetrics": true,
-    "deviceMetricsNote": "CPU·메모리·디스크는 이 앱이 실행 중인 PC에서 일반 권한으로 실측하고 시각·근거를 표시합니다. 방화벽은 측정하지 않습니다."
+    "deviceMetricsNote": "CPU·메모리·디스크는 이 앱이 실행 중인 PC에서 일반 권한으로 실측하고 시각·근거를 표시합니다. 방화벽은 측정하지 않습니다.",
+    "localObservation": true,
+    "localObservationNote": "네트워크·방화벽·최근 Windows System·Application 기록은 읽기만 하며, 실패한 항목은 확인 불가로 표시합니다."
   }
 }

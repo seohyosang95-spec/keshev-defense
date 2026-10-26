@@ -17,6 +17,7 @@ import {prepareLearnerSupportRequest} from './ai/learner-support-contract.mjs';
 import {createVaultOnAiService} from './ai/vault-service.mjs';
 import {createConnectionManager} from './connection/manager.mjs';
 import {createProjectScanner} from './vulnerabilities/project-scan.mjs';
+import {readLocalObservation} from './local-observation.mjs';
 import {buildLocalLearnerSupportGuide,isLearnerSupportProblemKind,readLocalLearnerSupportObservation} from './learner-support/service.mjs';
 import {nativeOwn,nativePublicError} from './connection/native-login.mjs';
 import {createNativeHostContext,captureNativeHostConfiguration,readNativeHostConfiguration,openNativeHostOperation,readNativeHostOperation,assertNativeHostOperation,createNativeOperationVault,closeNativeHostOperation} from './connection/native-context.mjs';
@@ -435,6 +436,9 @@ export function createOnServer(serverOptions={}) {
       }
       if(req.method==='GET'&&url.pathname==='/api/system-metrics'){
         const data=await bounded(signal=>readSystemMetrics({clock,signal}));send(200,{ok:true,data});return;
+      }
+      if(req.method==='GET'&&url.pathname==='/api/local-observation'){
+        const data=await bounded(signal=>readLocalObservation({clock,signal}));send(200,{ok:true,data});return;
       }
       if(req.method==='POST'&&connectionRoutes.has(url.pathname)){
         const kind=connectionRoutes.get(url.pathname),keys=kind==='start'?[]:['connectionId'];

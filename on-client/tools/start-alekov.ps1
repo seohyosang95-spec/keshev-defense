@@ -92,6 +92,16 @@ $major = [int]$Matches[1]
 if ($major -lt 22 -or $major -gt 24) { Stop-With "지금 Node.js 는 $versionText 입니다. 앱은 Node.js 22~24 에서 실행합니다. Node.js 24.19.0 을 권장합니다." }
 if ($versionText -ne 'v24.19.0') { Say "참고: 지금 Node.js 는 $versionText 입니다. 수업 기준은 v24.19.0 입니다." }
 
+# 2.5) Windows 읽기 전용 PC 관찰을 앱 시작 시 한 번 수집한다. 실패해도 서버 실행은 계속한다.
+$localObservationCollector = Join-Path $root 'tools\collect-local-observation.ps1'
+$localObservationPath = Join-Path $env:TEMP 'keshev-local-observation.json'
+if (Test-Path -LiteralPath $localObservationCollector) {
+  try {
+    & powershell.exe -NoLogo -NoProfile -NonInteractive -ExecutionPolicy Bypass -File $localObservationCollector -OutputPath $localObservationPath
+    if ($LASTEXITCODE -ne 0) { Say 'Windows 읽기 전용 PC 관찰을 완료하지 못했습니다. 해당 항목은 앱에서 확인 불가로 표시됩니다.' }
+  } catch { Say 'Windows 읽기 전용 PC 관찰을 실행하지 못했습니다. 해당 항목은 앱에서 확인 불가로 표시됩니다.' }
+}
+
 # 3) 포트 확인: 사용 중이면 다른 프로그램을 끄지 않고 다른 번호를 안내합니다.
 $busy = $false
 try {

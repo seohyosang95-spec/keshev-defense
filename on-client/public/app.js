@@ -32,7 +32,7 @@ const STATE_NAMES = { access: '접속', session: '세션', device: '기기' };
 
 const KIND_LABELS ={ access: '접속 기록', xdr: 'XDR 사건' };
 
-const STUDENT_GET_PATHS = ['/api/me', '/api/apps', '/api/events', '/api/devices', '/api/sessions', '/api/vulnerabilities', '/api/system-metrics'];
+const STUDENT_GET_PATHS = ['/api/me', '/api/apps', '/api/events', '/api/devices', '/api/sessions', '/api/vulnerabilities', '/api/system-metrics', '/api/local-observation'];
 const APPEARANCE_COLOR = /^#[0-9a-f]{6}$/i;
 
 async function loadAppearance() {

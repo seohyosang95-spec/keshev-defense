@@ -199,6 +199,16 @@ main:focus { outline: none; }
 .student-system-metric-value { font-size: 1.25rem; font-weight: 700; color: var(--accent); }
 .student-system-metric-comparison { color: var(--student); font-weight: 600; }
 @media (max-width: 760px) { .student-system-metric-grid { grid-template-columns: 1fr; } }
+.student-local-observation { margin: 0 0 16px; padding: 12px 14px; border: 1px solid var(--student); border-radius: var(--radius); background: var(--student-soft); }
+.student-local-observation h3 { margin-bottom: 4px; }
+.student-local-observation > p { margin: 5px 0; }
+.student-local-observation-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; margin: 12px 0; }
+.student-local-observation-card { min-width: 0; padding: 11px 12px; border: 1px solid var(--border); border-radius: var(--radius); background: var(--surface); }
+.student-local-observation-card h4 { margin: 0 0 6px; }
+.student-local-observation-card p { margin: 4px 0; overflow-wrap: anywhere; }
+.student-local-observation-value { font-size: 1.1rem; font-weight: 700; color: var(--student); }
+.student-sdp-scope { border-left: 4px solid var(--accent); }
+@media (max-width: 760px) { .student-local-observation-grid { grid-template-columns: 1fr; } }
 .student-risk-alert { margin: 8px 0; padding: 10px 12px; border: 1px solid var(--border); border-left: 4px solid var(--unknown); border-radius: var(--radius); background: var(--surface); }
 .student-risk-alert p { margin: 3px 0; overflow-wrap: anywhere; }
 .student-risk-alert-level { font-weight: 700; }
