@@ -19,13 +19,25 @@ for (const file of ['.env.example', '.on-starter-manifest.json', 'README.md', 'p
 
 await writeFile(join(output, 'launch-keshev.ps1'), `
 [CmdletBinding()]
-param([int]$Port = 5189)
+param(
+  [ValidateRange(1024, 65535)][int]$Port = 5189,
+  [string]$NativeHostConfig,
+  [string]$SdpHostConfig
+)
 Set-StrictMode -Version 3
 $ErrorActionPreference = 'Stop'
 $root = $PSScriptRoot
 $start = Join-Path $root 'tools\\start-alekov.ps1'
 if (-not (Test-Path -LiteralPath $start)) { throw "실행 파일을 찾을 수 없습니다: $start" }
-& powershell -NoProfile -ExecutionPolicy Bypass -File $start -Port $Port -Background
+$startArguments = @('-Port', $Port, '-Background')
+$nativePath = $NativeHostConfig
+if ([string]::IsNullOrWhiteSpace($nativePath)) {
+  $candidate = Join-Path ([Environment]::GetFolderPath('UserProfile')) 'AlekovPrivate\\native.json'
+  if (Test-Path -LiteralPath $candidate) { $nativePath = $candidate }
+}
+if (-not [string]::IsNullOrWhiteSpace($nativePath)) { $startArguments += @('-NativeHostConfig', $nativePath) }
+if (-not [string]::IsNullOrWhiteSpace($SdpHostConfig)) { $startArguments += @('-SdpHostConfig', $SdpHostConfig) }
+& powershell -NoProfile -ExecutionPolicy Bypass -File $start @startArguments
 $startExit = $LASTEXITCODE
 $url = "http://127.0.0.1:{0}/" -f $Port
 if ($startExit -ne 0) {
