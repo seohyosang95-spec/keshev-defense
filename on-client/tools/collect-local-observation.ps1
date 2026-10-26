@@ -26,7 +26,29 @@ function Read-Firewall {
     $summary = if ($enabled -eq $profiles.Count) { 'enabled' } elseif ($enabled -eq 0) { 'disabled' } else { 'mixed' }
     return [pscustomobject]@{ status = 'measured'; summary = $summary; profiles = $profiles }
   } catch {
-    return Unavailable 'FIREWALL_ACCESS_UNAVAILABLE' '일반 권한에서 방화벽 프로필을 읽지 못했습니다. 설정은 변경하지 않았습니다.'
+    try {
+      $registryProfiles = @(
+        [pscustomobject]@{ name = 'Domain'; path = 'HKLM:\SYSTEM\CurrentControlSet\Services\SharedAccess\Parameters\FirewallPolicy\DomainProfile' }
+        [pscustomobject]@{ name = 'Standard'; path = 'HKLM:\SYSTEM\CurrentControlSet\Services\SharedAccess\Parameters\FirewallPolicy\StandardProfile' }
+        [pscustomobject]@{ name = 'Public'; path = 'HKLM:\SYSTEM\CurrentControlSet\Services\SharedAccess\Parameters\FirewallPolicy\PublicProfile' }
+      )
+      $profiles = @()
+      foreach ($entry in $registryProfiles) {
+        $item = Get-ItemProperty -LiteralPath $entry.path -ErrorAction Stop
+        if ($item.PSObject.Properties.Name -notcontains 'EnableFirewall') { throw 'FIREWALL_REGISTRY_VALUE_MISSING' }
+        $profiles += [pscustomobject]@{
+          name = $entry.name
+          enabled = ([int]$item.EnableFirewall -eq 1)
+          defaultInboundAction = 'unknown'
+          defaultOutboundAction = 'unknown'
+        }
+      }
+      $enabled = @($profiles | Where-Object { $_.enabled }).Count
+      $summary = if ($enabled -eq $profiles.Count) { 'enabled' } elseif ($enabled -eq 0) { 'disabled' } else { 'mixed' }
+      return [pscustomobject]@{ status = 'measured'; summary = $summary; profiles = $profiles; source = 'registry-read-only' }
+    } catch {
+      return Unavailable 'FIREWALL_ACCESS_UNAVAILABLE' '일반 권한에서 방화벽 프로필을 읽지 못했습니다. 설정은 변경하지 않았습니다.'
+    }
   }
 }
 

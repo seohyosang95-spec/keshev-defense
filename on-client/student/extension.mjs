@@ -104,6 +104,10 @@ function formatFirewallSummary(summary) {
   return '확인 불가';
 }
 
+function formatFirewallAction(action) {
+  return action === 'unknown' || !action ? '확인 불가' : action;
+}
+
 function formatAdapterStatus(status) {
   if (status === 'Up') return '연결됨';
   if (status === 'Down') return '연결 안 됨';
@@ -377,7 +381,7 @@ export function createStudentView({ api, onChange } = {}) {
         firewallCard.appendChild(summary);
         data.firewall.profiles.forEach((profile) => {
           const item = document.createElement('p');
-          item.textContent = `${profile.name}: ${profile.enabled ? '켜짐' : '꺼짐'} · 인바운드 ${profile.defaultInboundAction} · 아웃바운드 ${profile.defaultOutboundAction}`;
+          item.textContent = `${profile.name}: ${profile.enabled ? '켜짐' : '꺼짐'} · 인바운드 ${formatFirewallAction(profile.defaultInboundAction)} · 아웃바운드 ${formatFirewallAction(profile.defaultOutboundAction)}`;
           firewallCard.appendChild(item);
         });
       }
