@@ -549,6 +549,18 @@ main { max-width: 1540px; padding: 34px 42px 68px; }
 .student-system-metric-card[data-metric="disk"] .student-system-metric-value { color: #087f7a; }
 .student-system-metric-card .muted { font-family: var(--font-mono); font-size: 0.65rem; line-height: 1.55; }
 .student-system-metric-comparison { margin-top: 12px !important; padding-top: 9px; border-top: 1px solid var(--line-soft); color: var(--violet); font-family: var(--font-mono); font-size: 0.68rem; }
+.student-metric-history { margin-top: 18px; padding: 16px; border: 1px solid #d4ddeb; border-radius: 14px; background: rgba(255, 255, 255, 0.78); }
+.student-metric-history h4 { margin: 0 0 5px; color: var(--ink-strong); font-family: var(--font-display); font-size: 0.92rem; }
+.student-metric-history > .muted { margin: 0 0 10px; font-family: var(--font-mono); font-size: 0.66rem; }
+.student-metric-history-chart { display: block; width: 100%; min-height: 220px; overflow: visible; }
+.student-metric-history-gridline { stroke: #e5eaf3; stroke-width: 1; }
+.student-metric-history-axis { stroke: #aebbd0; stroke-width: 1.2; }
+.student-metric-history-axis-label { fill: #657694; font-family: var(--font-mono); font-size: 10px; }
+.student-metric-history-line { fill: none; stroke-linecap: round; stroke-linejoin: round; stroke-width: 2.8; }
+.student-metric-history-point { stroke: #fff; stroke-width: 1.5; }
+.student-metric-history-legend { display: flex; flex-wrap: wrap; gap: 8px 18px; margin: 8px 0 0; padding: 0; color: var(--ink-soft); font-family: var(--font-mono); font-size: 0.66rem; list-style: none; }
+.student-metric-history-legend li { display: inline-flex; align-items: center; gap: 6px; }
+.student-metric-history-swatch { display: inline-block; width: 8px; height: 8px; border-radius: 50%; }
 
 .student-local-observation { padding: 19px; border: 1px solid #d7d1ed; border-radius: 16px; background: linear-gradient(145deg, #fbfaff, #f4f0ff); box-shadow: 0 10px 26px rgba(107, 63, 179, 0.055); }
 .student-local-observation-grid { gap: 13px; margin: 16px 0; }

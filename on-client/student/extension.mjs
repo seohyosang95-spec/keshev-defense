@@ -16,6 +16,13 @@ const SYSTEM_METRIC_SOURCES = {
   disk: 'Node.js fs.statfs() · 앱 설치 드라이브',
 };
 
+const METRIC_HISTORY_LIMIT = 12;
+const METRIC_HISTORY_SERIES = [
+  { kind: 'cpu', label: 'CPU 사용률', color: '#3156d3' },
+  { kind: 'memory', label: '메모리 사용률', color: '#6e4dcc' },
+  { kind: 'disk', label: '디스크 여유', color: '#087f7a' },
+];
+
 function isRecord(value) {
   return value !== null && typeof value === 'object' && !Array.isArray(value);
 }
@@ -209,12 +216,28 @@ function riskNextStep(resource, level) {
 export function createStudentView({ api, onChange } = {}) {
   let systemMetrics = { status: 'loading' };
   let previousSystemMetrics = null;
+  let metricHistory = [];
   let metricsRequestId = 0;
   let localObservation = { status: 'loading' };
   let localObservationRequestId = 0;
 
   const rerender = () => {
     if (typeof onChange === 'function') onChange();
+  };
+
+  const historyValue = (kind, metric) => {
+    if (!isRecord(metric) || metric.status !== 'measured') return null;
+    if (kind === 'cpu') return metric.value;
+    if (kind === 'memory') return metric.usedPercent;
+    return metric.freePercent;
+  };
+
+  const appendMetricHistory = (data) => {
+    const last = metricHistory[metricHistory.length - 1];
+    if (last?.checkedAt === data.checkedAt) return;
+    const values = {};
+    for (const series of METRIC_HISTORY_SERIES) values[series.kind] = historyValue(series.kind, data.metrics[series.kind]);
+    metricHistory = [...metricHistory, { checkedAt: data.checkedAt, values }].slice(-METRIC_HISTORY_LIMIT);
   };
 
   const loadSystemMetrics = ({ initial = false } = {}) => {
@@ -232,6 +255,7 @@ export function createStudentView({ api, onChange } = {}) {
         return;
       }
       systemMetrics = { status: 'ok', data: result.data, meta: result.meta };
+      appendMetricHistory(result.data);
     }).catch(() => {
       if (requestId === metricsRequestId) systemMetrics = { status: 'error', error: { code: 'NETWORK_ERROR', message: '내 PC 상태를 읽지 못했습니다.' } };
     }).finally(() => {
@@ -309,6 +333,100 @@ export function createStudentView({ api, onChange } = {}) {
       card.appendChild(comparison);
     }
     return card;
+  };
+
+  const renderMetricHistory = () => {
+    const section = document.createElement('section');
+    section.className = 'student-metric-history';
+    section.setAttribute('aria-labelledby', 'student-metric-history-title');
+
+    const heading = document.createElement('h4');
+    heading.id = 'student-metric-history-title';
+    heading.textContent = '최근 실측 변화';
+    section.appendChild(heading);
+
+    const note = document.createElement('p');
+    note.className = 'muted';
+    note.textContent = '조회할 때마다 CPU·메모리 사용률과 디스크 여유 공간을 0~100% 기준으로 누적합니다. 측정할 수 없는 항목은 빈 구간으로 표시합니다.';
+    section.appendChild(note);
+
+    if (metricHistory.length === 0) {
+      const empty = document.createElement('p');
+      empty.className = 'student-inline-error';
+      empty.textContent = '아직 표시할 실측 기록이 없습니다.';
+      section.appendChild(empty);
+      return section;
+    }
+
+    const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+    svg.classList.add('student-metric-history-chart');
+    svg.setAttribute('viewBox', '0 0 640 220');
+    svg.setAttribute('role', 'img');
+    svg.setAttribute('aria-label', '최근 CPU, 메모리 사용률과 디스크 여유 공간의 변화 그래프');
+
+    const plot = { left: 50, top: 16, width: 570, height: 166 };
+    const addSvg = (name, attributes) => {
+      const element = document.createElementNS('http://www.w3.org/2000/svg', name);
+      for (const [key, value] of Object.entries(attributes)) element.setAttribute(key, String(value));
+      svg.appendChild(element);
+      return element;
+    };
+    const xFor = (index) => metricHistory.length === 1
+      ? plot.left + plot.width / 2
+      : plot.left + (index / (metricHistory.length - 1)) * plot.width;
+    const yFor = (value) => plot.top + plot.height - (value / 100) * plot.height;
+
+    for (const tick of [0, 25, 50, 75, 100]) {
+      const y = yFor(tick);
+      addSvg('line', { x1: plot.left, y1: y, x2: plot.left + plot.width, y2: y, class: 'student-metric-history-gridline' });
+      addSvg('text', { x: plot.left - 10, y: y + 4, class: 'student-metric-history-axis-label', 'text-anchor': 'end' }).textContent = `${tick}%`;
+    }
+    addSvg('line', { x1: plot.left, y1: plot.top + plot.height, x2: plot.left + plot.width, y2: plot.top + plot.height, class: 'student-metric-history-axis' });
+
+    const xLabels = [...new Set([0, Math.floor((metricHistory.length - 1) / 2), metricHistory.length - 1])];
+    for (const index of xLabels) {
+      const label = isIsoDate(metricHistory[index].checkedAt)
+        ? new Date(metricHistory[index].checkedAt).toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit' })
+        : '확인 불가';
+      addSvg('text', { x: xFor(index), y: plot.top + plot.height + 25, class: 'student-metric-history-axis-label', 'text-anchor': 'middle' }).textContent = label;
+    }
+
+    for (const series of METRIC_HISTORY_SERIES) {
+      let segment = [];
+      const flush = () => {
+        if (segment.length > 1) addSvg('polyline', { points: segment.map(([x, y]) => `${x},${y}`).join(' '), class: 'student-metric-history-line', stroke: series.color });
+        segment = [];
+      };
+      metricHistory.forEach((sample, index) => {
+        const value = sample.values[series.kind];
+        if (!Number.isFinite(value)) {
+          flush();
+          return;
+        }
+        const point = [xFor(index), yFor(value)];
+        segment.push(point);
+        addSvg('circle', { cx: point[0], cy: point[1], r: 3.5, class: 'student-metric-history-point', fill: series.color });
+      });
+      flush();
+    }
+    section.appendChild(svg);
+
+    const legend = document.createElement('ul');
+    legend.className = 'student-metric-history-legend';
+    const latest = metricHistory[metricHistory.length - 1];
+    for (const series of METRIC_HISTORY_SERIES) {
+      const item = document.createElement('li');
+      const swatch = document.createElement('span');
+      swatch.className = 'student-metric-history-swatch';
+      swatch.style.backgroundColor = series.color;
+      swatch.setAttribute('aria-hidden', 'true');
+      item.appendChild(swatch);
+      const value = latest.values[series.kind];
+      item.appendChild(document.createTextNode(`${series.label}: ${Number.isFinite(value) ? `${value.toFixed(1)}%` : '확인 불가'}`));
+      legend.appendChild(item);
+    }
+    section.appendChild(legend);
+    return section;
   };
 
   const renderFeatureSummary = (notifications = []) => {
@@ -659,6 +777,7 @@ export function createStudentView({ api, onChange } = {}) {
       const previous = previousSystemMetrics?.metrics || {};
       for (const kind of ['cpu', 'memory', 'disk']) grid.appendChild(renderMetricCard(kind, metrics[kind], previous[kind]));
       section.appendChild(grid);
+      section.appendChild(renderMetricHistory());
       const checkedAt = document.createElement('p');
       checkedAt.className = 'muted';
       checkedAt.textContent = `전체 측정 묶음 시각: ${formatMetricTime(systemMetrics.data.checkedAt)}`;
