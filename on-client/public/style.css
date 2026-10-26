@@ -311,3 +311,77 @@ main:focus { outline: none; }
 .state-ok { background: var(--allow-soft); color: var(--allow); }
 .ai-result[data-state="connected"] { border-left: 3px solid var(--allow); padding-left: 12px; }
 .ai-result[data-state="unknown"] { border-left: 3px solid var(--unknown); padding-left: 12px; }
+
+/* 케셰브 독자 관제 보드 스킨 — 외부 코드·폰트·이미지 없이 기존 구조에 적용 */
+:root {
+  --bg: #eef1f7;
+  --surface: #ffffff;
+  --border: #d5dbea;
+  --text: #17213b;
+  --muted: #5f6b85;
+  --accent: #3156d3;
+  --accent-soft: #e9edff;
+  --student: #7652c7;
+  --student-soft: #f1edff;
+  --radius: 12px;
+  --focus: 0 0 0 3px #ffd45c;
+}
+
+body { background: radial-gradient(circle at 96% 0%, #e2e7ff 0, transparent 28%), var(--bg); }
+.topbar { height: 68px; padding: 0 28px; border-bottom: 1px solid #202e5b; background: #111b3a; color: #fff; box-shadow: 0 8px 22px rgba(17, 27, 58, 0.14); }
+.brand { gap: 12px; }
+.brand-icon { border-radius: 10px; box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.16); }
+.brand-name { letter-spacing: -0.01em; }
+.brand-name small { color: #b8c5ed; }
+.brand-mark { background: #7184ff; }
+.topbar-status { gap: 10px; }
+.checked-at { color: #b8c5ed; }
+.topbar .mode-badge { border-color: rgba(255, 255, 255, 0.28); }
+.topbar .btn { border-color: rgba(255, 255, 255, 0.26); background: rgba(255, 255, 255, 0.11); color: #fff; }
+.topbar .btn:hover:not(:disabled) { border-color: #fff; background: rgba(255, 255, 255, 0.2); color: #fff; }
+.layout { grid-template-columns: 236px minmax(0, 1fr); min-height: calc(100vh - 68px); }
+.sidebar { padding: 22px 14px; border-right: 1px solid #d7dced; background: linear-gradient(180deg, #18244c 0%, #101a37 100%); color: #fff; }
+#nav { gap: 8px; }
+#nav [role="tab"] { padding: 12px 14px; border: 1px solid transparent; border-radius: 10px; color: #d3dcff; font-weight: 600; }
+#nav [role="tab"]:hover { background: rgba(255, 255, 255, 0.08); color: #fff; }
+#nav [role="tab"][aria-selected="true"] { border-color: rgba(158, 174, 255, 0.4); background: linear-gradient(90deg, rgba(113, 132, 255, 0.34), rgba(113, 132, 255, 0.08)); color: #fff; box-shadow: inset 3px 0 0 #8b9aff; }
+.sidebar-note { margin: 20px 8px 0; color: #9eacd4; line-height: 1.6; }
+main { max-width: 1520px; padding: 28px 36px 56px; }
+.notice { border: 1px solid #cbd4f3; border-left: 4px solid var(--accent); border-radius: 10px; background: rgba(255, 255, 255, 0.78); color: var(--text); box-shadow: 0 5px 16px rgba(45, 60, 110, 0.05); }
+.error-banner { border-radius: 10px; box-shadow: 0 5px 16px rgba(180, 35, 24, 0.08); }
+h1 { color: #111b3a; letter-spacing: -0.03em; }
+h2 { color: #17213b; letter-spacing: -0.02em; }
+.grid-2 { gap: 18px; margin-bottom: 18px; }
+.card { padding: 20px 22px; margin-bottom: 18px; border: 1px solid #d7dced; border-radius: 14px; background: rgba(255, 255, 255, 0.94); box-shadow: 0 8px 24px rgba(32, 46, 91, 0.06); }
+.grid-2 > .card { margin-bottom: 0; }
+.card.provided { border-top: 3px solid #4264d7; }
+.card.student { border-top: 3px solid var(--student); border-left: 1px solid #d7dced; }
+.card > h2 { padding-bottom: 12px; border-bottom: 1px solid #edf0f7; }
+.tag { padding: 3px 9px; border: 1px solid #d7dced; font-weight: 700; letter-spacing: 0.01em; }
+.tag-student { border-color: #d5cafa; }
+.muted { color: #65718c; }
+.row { gap: 9px; }
+.btn { min-height: 40px; padding: 8px 15px; border: 1px solid #cbd3e5; border-radius: 9px; background: #fff; color: #253252; font-weight: 650; box-shadow: 0 2px 5px rgba(30, 45, 90, 0.04); transition: border-color 120ms ease, background 120ms ease, transform 120ms ease; }
+.btn:hover:not(:disabled) { border-color: var(--accent); background: var(--accent-soft); color: #2345b5; transform: translateY(-1px); }
+.btn:active:not(:disabled) { transform: translateY(0); }
+.app-button { min-height: 44px; }
+.state, .decision { border-radius: 10px; }
+.plain-list li { padding: 10px 0; border-bottom-color: #edf0f7; }
+.identity, .kv { gap: 8px 14px; }
+.records { gap: 14px; }
+.event { padding: 15px 16px; border-color: #d7dced; border-radius: 11px; background: #fbfcff; }
+.event:hover { border-color: #b7c3ec; }
+.student-record-summary, .student-event-detail-area { border-radius: 10px; }
+.student-filter-bar { border-radius: 10px; background: #f7f8fc; }
+.student-event-row { border-radius: 9px; background: #fff; }
+.vulnerabilities-result table th { background: #f0f3fb; color: #334266; }
+.vulnerabilities-result th, .vulnerabilities-result td { border-bottom-color: #e4e8f1; }
+.diag-output { border: 1px solid #2c3b63; border-radius: 10px; box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.04); }
+.connect-layout { gap: 24px; }
+.connect-art { padding: 10px; border: 1px solid #e2e6f1; border-radius: 12px; background: #f8f9fd; }
+.student-status { margin: 2px 0; }
+
+@media (max-width: 1100px) {
+  main { padding-left: 24px; padding-right: 24px; }
+  .topbar { padding-left: 20px; padding-right: 20px; }
+}
