@@ -1,5 +1,6 @@
 import http from 'node:http';
-import {readFile} from 'node:fs/promises';
+import {readFile,statfs} from 'node:fs/promises';
+import * as os from 'node:os';
 import {fileURLToPath} from 'node:url';
 import {resolve} from 'node:path';
 import {randomUUID} from 'node:crypto';
@@ -21,9 +22,65 @@ import {nativeOwn,nativePublicError} from './connection/native-login.mjs';
 import {createNativeHostContext,captureNativeHostConfiguration,readNativeHostConfiguration,openNativeHostOperation,readNativeHostOperation,assertNativeHostOperation,createNativeOperationVault,closeNativeHostOperation} from './connection/native-context.mjs';
 
 const root=fileURLToPath(new URL('../',import.meta.url));
+const SYSTEM_METRICS_SCHEMA='keshev.system-metrics.v1';
+const SYSTEM_METRIC_SAMPLE_MS=250;
 const id=value=>typeof value==='string'&&/^[A-Za-z0-9][A-Za-z0-9._:-]{0,79}$/.test(value);
 const record=value=>value!==null&&typeof value==='object'&&!Array.isArray(value);
 const text=value=>typeof value==='string'&&value.length<=2000;
+
+function unavailableMetric(unit,measuredAt,reasonCode,reason){
+  return {status:'unavailable',value:null,unit,measuredAt,reasonCode,reason};
+}
+function cpuTotals(){
+  const cpus=os.cpus();
+  if(!Array.isArray(cpus)||cpus.length===0)throw Error('CPU_UNAVAILABLE');
+  return cpus.reduce((total,cpu)=>{
+    const times=cpu?.times;
+    if(!times||!['user','nice','sys','idle','irq'].every(key=>Number.isFinite(times[key])&&times[key]>=0))throw Error('CPU_UNAVAILABLE');
+    total.idle+=times.idle;total.total+=times.user+times.nice+times.sys+times.idle+times.irq;return total;
+  },{idle:0,total:0});
+}
+function waitForSystemMetricSample(ms,signal){
+  return new Promise((resolve,reject)=>{
+    let timer;
+    const stop=()=>{clearTimeout(timer);signal?.removeEventListener('abort',stop);reject(Object.assign(Error('REQUEST_CANCELLED'),{code:'REQUEST_CANCELLED'}));};
+    timer=setTimeout(()=>{signal?.removeEventListener('abort',stop);resolve();},ms);
+    if(signal?.aborted)stop();else signal?.addEventListener('abort',stop,{once:true});
+  });
+}
+function memoryMetric(measuredAt){
+  const totalBytes=os.totalmem();
+  const freeBytes=os.freemem();
+  if(!Number.isSafeInteger(totalBytes)||totalBytes<=0||!Number.isSafeInteger(freeBytes)||freeBytes<0||freeBytes>totalBytes)
+    return unavailableMetric('bytes',measuredAt,'MEMORY_UNAVAILABLE','운영체제가 메모리 값을 제공하지 않았습니다.');
+  const usedBytes=totalBytes-freeBytes;
+  return {status:'measured',usedBytes,totalBytes,usedPercent:Math.round((usedBytes/totalBytes)*1000)/10,unit:'bytes',measuredAt,source:'node:os.totalmem/os.freemem'};
+}
+async function diskMetric(measuredAt){
+  try{
+    const stats=await statfs(root);
+    const blockSize=Number(stats.bsize);
+    const totalBlocks=Number(stats.blocks);
+    const freeBlocks=Number(stats.bavail??stats.bfree);
+    const totalBytes=Math.floor(blockSize*totalBlocks),freeBytes=Math.floor(blockSize*freeBlocks);
+    if(!Number.isSafeInteger(totalBytes)||totalBytes<=0||!Number.isSafeInteger(freeBytes)||freeBytes<0||freeBytes>totalBytes)throw Error('DISK_UNAVAILABLE');
+    return {status:'measured',freeBytes,totalBytes,freePercent:Math.round((freeBytes/totalBytes)*1000)/10,unit:'bytes',measuredAt,source:'node:fs.statfs',scope:'앱 설치 드라이브'};
+  }catch{return unavailableMetric('bytes',measuredAt,'DISK_UNAVAILABLE','앱이 설치된 드라이브의 여유 공간을 읽지 못했습니다.');}
+}
+async function readSystemMetrics({clock=()=>new Date(),signal}={}){
+  const checkedAt=clock().toISOString();
+  let cpu;
+  try{
+    const before=cpuTotals();
+    await waitForSystemMetricSample(SYSTEM_METRIC_SAMPLE_MS,signal);
+    const after=cpuTotals();
+    const totalDelta=after.total-before.total,idleDelta=after.idle-before.idle;
+    if(!Number.isFinite(totalDelta)||totalDelta<=0||!Number.isFinite(idleDelta)||idleDelta<0||idleDelta>totalDelta)throw Error('CPU_UNAVAILABLE');
+    cpu={status:'measured',value:Math.round((1-idleDelta/totalDelta)*1000)/10,unit:'%',measuredAt:checkedAt,source:'node:os.cpus()',sampleMs:SYSTEM_METRIC_SAMPLE_MS};
+  }catch(error){if(error?.code==='REQUEST_CANCELLED')throw error;cpu=unavailableMetric('%',checkedAt,'CPU_UNAVAILABLE','운영체제가 CPU 사용률을 제공하지 않았습니다.');}
+  const [memory,disk]=await Promise.all([Promise.resolve(memoryMetric(checkedAt)),diskMetric(checkedAt)]);
+  return {schema:SYSTEM_METRICS_SCHEMA,checkedAt,source:'local-os',metrics:{cpu,memory,disk}};
+}
 const files=new Map([['/','public/index.html'],['/index.html','public/index.html'],['/app.js','public/app.js'],['/style.css','public/style.css'],['/vulnerabilities-view.mjs','public/vulnerabilities-view.mjs'],['/student/extension.mjs','student/extension.mjs'],
   ['/student/appearance.json','student/appearance.json'],
   ['/ai-connect.mjs','public/ai-connect.mjs'],
@@ -375,6 +432,9 @@ export function createOnServer(serverOptions={}) {
         const data=await readFile(resolve(assetsRoot,files.get(url.pathname)));
         const type=url.pathname.endsWith('.webp')?'image/webp':url.pathname.endsWith('.css')?'text/css':url.pathname.endsWith('.js')||url.pathname.endsWith('.mjs')?'text/javascript':'text/html';
         res.writeHead(200,{'content-type':type==='image/webp'?type:`${type}; charset=utf-8`,'cache-control':'no-store','content-security-policy':"default-src 'self'; script-src 'self'; style-src 'self'; connect-src 'self'; img-src 'self' data:; object-src 'none'; frame-ancestors 'none'; base-uri 'none'",'x-content-type-options':'nosniff'});res.end(data);return;
+      }
+      if(req.method==='GET'&&url.pathname==='/api/system-metrics'){
+        const data=await bounded(signal=>readSystemMetrics({clock,signal}));send(200,{ok:true,data});return;
       }
       if(req.method==='POST'&&connectionRoutes.has(url.pathname)){
         const kind=connectionRoutes.get(url.pathname),keys=kind==='start'?[]:['connectionId'];

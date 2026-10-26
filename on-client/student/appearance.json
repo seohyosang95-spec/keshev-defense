@@ -15,7 +15,7 @@
     { "id": "records", "label": "보안 기록" }
   ],
   "scope": {
-    "deviceMetrics": false,
-    "deviceMetricsNote": "CPU·메모리·디스크·방화벽은 이 앱에서 측정하지 않습니다."
+    "deviceMetrics": true,
+    "deviceMetricsNote": "CPU·메모리·디스크는 이 앱이 실행 중인 PC에서 일반 권한으로 실측하고 시각·근거를 표시합니다. 방화벽은 측정하지 않습니다."
   }
 }

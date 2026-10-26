@@ -189,6 +189,16 @@ main:focus { outline: none; }
 .student-event-detail-area ul { margin: 4px 0 12px; padding-left: 20px; }
 
 .student-device-scope { margin-top: 8px; padding: 8px 10px; border-left: 3px solid var(--unknown); background: var(--unknown-soft); }
+.student-system-metrics { margin: 0 0 16px; padding: 12px 14px; border: 1px solid var(--accent); border-radius: var(--radius); background: var(--accent-soft); }
+.student-system-metrics h3 { margin-bottom: 4px; }
+.student-system-metrics > p { margin: 5px 0; }
+.student-system-metric-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; margin: 12px 0; }
+.student-system-metric-card { min-width: 0; padding: 11px 12px; border: 1px solid var(--border); border-radius: var(--radius); background: var(--surface); }
+.student-system-metric-card h4 { margin: 0 0 6px; }
+.student-system-metric-card p { margin: 4px 0; overflow-wrap: anywhere; }
+.student-system-metric-value { font-size: 1.25rem; font-weight: 700; color: var(--accent); }
+.student-system-metric-comparison { color: var(--student); font-weight: 600; }
+@media (max-width: 760px) { .student-system-metric-grid { grid-template-columns: 1fr; } }
 .student-risk-alert { margin: 8px 0; padding: 10px 12px; border: 1px solid var(--border); border-left: 4px solid var(--unknown); border-radius: var(--radius); background: var(--surface); }
 .student-risk-alert p { margin: 3px 0; overflow-wrap: anywhere; }
 .student-risk-alert-level { font-weight: 700; }

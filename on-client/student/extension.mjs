@@ -8,6 +8,59 @@ function formatMode(mode) {
   return mode ? `확인 불가 (${mode})` : '확인 불가';
 }
 
+const SYSTEM_METRICS_SCHEMA = 'keshev.system-metrics.v1';
+const SYSTEM_METRIC_LABELS = { cpu: 'CPU 사용률', memory: '메모리 사용량', disk: '디스크 남은 공간' };
+const SYSTEM_METRIC_SOURCES = {
+  cpu: 'Node.js os.cpus()를 250ms 간격으로 비교',
+  memory: 'Node.js os.totalmem()·os.freemem()',
+  disk: 'Node.js fs.statfs() · 앱 설치 드라이브',
+};
+
+function isRecord(value) {
+  return value !== null && typeof value === 'object' && !Array.isArray(value);
+}
+
+function isIsoDate(value) {
+  return typeof value === 'string' && Number.isFinite(Date.parse(value));
+}
+
+function validMetricUnavailable(metric, unit) {
+  return isRecord(metric) && metric.status === 'unavailable' && metric.value === null && metric.unit === unit
+    && isIsoDate(metric.measuredAt) && typeof metric.reasonCode === 'string' && typeof metric.reason === 'string';
+}
+
+function validSystemMetrics(data) {
+  if (!isRecord(data) || data.schema !== SYSTEM_METRICS_SCHEMA || !isIsoDate(data.checkedAt) || data.source !== 'local-os' || !isRecord(data.metrics)) return false;
+  const { cpu, memory, disk } = data.metrics;
+  const validCpu = (isRecord(cpu) && cpu.status === 'measured' && typeof cpu.value === 'number' && Number.isFinite(cpu.value)
+    && cpu.value >= 0 && cpu.value <= 100 && cpu.unit === '%' && isIsoDate(cpu.measuredAt) && cpu.source === 'node:os.cpus()'
+    && Number.isSafeInteger(cpu.sampleMs) && cpu.sampleMs > 0) || validMetricUnavailable(cpu, '%');
+  const validMemory = (isRecord(memory) && memory.status === 'measured' && Number.isSafeInteger(memory.usedBytes) && memory.usedBytes >= 0
+    && Number.isSafeInteger(memory.totalBytes) && memory.totalBytes > 0 && memory.usedBytes <= memory.totalBytes
+    && typeof memory.usedPercent === 'number' && Number.isFinite(memory.usedPercent) && memory.usedPercent >= 0 && memory.usedPercent <= 100
+    && memory.unit === 'bytes' && isIsoDate(memory.measuredAt) && memory.source === 'node:os.totalmem/os.freemem') || validMetricUnavailable(memory, 'bytes');
+  const validDisk = (isRecord(disk) && disk.status === 'measured' && Number.isSafeInteger(disk.freeBytes) && disk.freeBytes >= 0
+    && Number.isSafeInteger(disk.totalBytes) && disk.totalBytes > 0 && disk.freeBytes <= disk.totalBytes
+    && typeof disk.freePercent === 'number' && Number.isFinite(disk.freePercent) && disk.freePercent >= 0 && disk.freePercent <= 100
+    && disk.unit === 'bytes' && isIsoDate(disk.measuredAt) && disk.source === 'node:fs.statfs' && disk.scope === '앱 설치 드라이브') || validMetricUnavailable(disk, 'bytes');
+  return validCpu && validMemory && validDisk;
+}
+
+function formatGiB(bytes) {
+  if (!Number.isFinite(bytes) || bytes < 0) return '확인 불가';
+  return `${(bytes / (1024 ** 3)).toFixed(1)} GiB`;
+}
+
+function formatMetricTime(value) {
+  if (!isIsoDate(value)) return '확인 불가';
+  return `${new Date(value).toLocaleString('ko-KR')} (${value})`;
+}
+
+function formatSignedPercentPoints(value) {
+  if (!Number.isFinite(value)) return '확인 불가';
+  return `${value >= 0 ? '+' : ''}${value.toFixed(1)}%p`;
+}
+
 function formatDeviceStatus(status) {
   const code = status || 'unknown';
   if (status === 'compliant') return `보안 기준 충족(${code})`;
@@ -93,7 +146,127 @@ function riskNextStep(resource, level) {
   return '위쪽의 다시 불러오기 버튼을 사용해 해당 자료를 직접 확인하세요.';
 }
 
-export function createStudentView() {
+export function createStudentView({ api, onChange } = {}) {
+  let systemMetrics = { status: 'loading' };
+  let previousSystemMetrics = null;
+  let metricsRequestId = 0;
+
+  const rerender = () => {
+    if (typeof onChange === 'function') onChange();
+  };
+
+  const loadSystemMetrics = ({ initial = false } = {}) => {
+    const requestId = ++metricsRequestId;
+    if (!initial && systemMetrics.status === 'ok') previousSystemMetrics = systemMetrics.data;
+    systemMetrics = { status: 'loading' };
+    if (!initial) rerender();
+    Promise.resolve().then(() => api?.get('/api/system-metrics')).then((result) => {
+      if (requestId !== metricsRequestId) return;
+      if (!result?.ok || !validSystemMetrics(result.data)) {
+        systemMetrics = {
+          status: 'error',
+          error: result?.error || { code: 'CONTRACT_MISMATCH', message: '실측 응답 형식을 확인할 수 없습니다.' },
+        };
+        return;
+      }
+      systemMetrics = { status: 'ok', data: result.data, meta: result.meta };
+    }).catch(() => {
+      if (requestId === metricsRequestId) systemMetrics = { status: 'error', error: { code: 'NETWORK_ERROR', message: '내 PC 상태를 읽지 못했습니다.' } };
+    }).finally(() => {
+      if (requestId === metricsRequestId) rerender();
+    });
+  };
+
+  const renderMetricCard = (kind, metric, previous) => {
+    const card = document.createElement('article');
+    card.className = 'student-system-metric-card';
+    card.dataset.metric = kind;
+    const heading = document.createElement('h4');
+    heading.textContent = SYSTEM_METRIC_LABELS[kind];
+    card.appendChild(heading);
+
+    const value = document.createElement('p');
+    value.className = 'student-system-metric-value';
+    if (metric.status !== 'measured') value.textContent = '확인 불가';
+    else if (kind === 'cpu') value.textContent = `${metric.value.toFixed(1)}%`;
+    else if (kind === 'memory') value.textContent = `${formatGiB(metric.usedBytes)} / ${formatGiB(metric.totalBytes)} 사용 (${metric.usedPercent.toFixed(1)}%)`;
+    else value.textContent = `${formatGiB(metric.freeBytes)} 남음 / ${formatGiB(metric.totalBytes)} (${metric.freePercent.toFixed(1)}%)`;
+    card.appendChild(value);
+
+    const measuredAt = document.createElement('p');
+    measuredAt.className = 'muted';
+    measuredAt.textContent = `측정 시각: ${formatMetricTime(metric.measuredAt)}`;
+    card.appendChild(measuredAt);
+
+    const source = document.createElement('p');
+    source.className = 'muted';
+    source.textContent = `근거: ${SYSTEM_METRIC_SOURCES[kind]} · 일반 권한`;
+    card.appendChild(source);
+
+    if (metric.status === 'unavailable') {
+      const reason = document.createElement('p');
+      reason.textContent = `사유: ${metric.reason || '측정할 수 없습니다.'}`;
+      card.appendChild(reason);
+    } else if (previous?.status === 'measured') {
+      const comparison = document.createElement('p');
+      comparison.className = 'student-system-metric-comparison';
+      const currentValue = kind === 'cpu' ? metric.value : kind === 'memory' ? metric.usedPercent : metric.freePercent;
+      const previousValue = kind === 'cpu' ? previous.value : kind === 'memory' ? previous.usedPercent : previous.freePercent;
+      comparison.textContent = `직전 실측 대비: ${formatSignedPercentPoints(currentValue - previousValue)}`;
+      card.appendChild(comparison);
+    } else {
+      const comparison = document.createElement('p');
+      comparison.className = 'muted';
+      comparison.textContent = '직전 실측 없음 · 다음 측정부터 비교합니다.';
+      card.appendChild(comparison);
+    }
+    return card;
+  };
+
+  const renderSystemMetrics = () => {
+    const section = document.createElement('section');
+    section.className = 'student-system-metrics';
+    const heading = document.createElement('h3');
+    heading.textContent = '내 PC 상태 · 실측값';
+    section.appendChild(heading);
+    const note = document.createElement('p');
+    note.className = 'muted';
+    note.textContent = '이 값은 이 앱이 실행 중인 PC에서 일반 권한으로 직접 측정했습니다. 예시 값이 아니며, 각 항목의 측정 시각과 근거를 함께 표시합니다.';
+    section.appendChild(note);
+
+    if (systemMetrics.status === 'loading') {
+      const loading = document.createElement('p');
+      loading.textContent = 'CPU·메모리·디스크를 측정하는 중입니다.';
+      section.appendChild(loading);
+    } else if (systemMetrics.status === 'error') {
+      const error = document.createElement('p');
+      error.textContent = `실측 결과를 불러오지 못했습니다: ${systemMetrics.error?.message || '확인 불가'}`;
+      section.appendChild(error);
+    } else if (systemMetrics.status === 'ok') {
+      const grid = document.createElement('div');
+      grid.className = 'student-system-metric-grid';
+      const metrics = systemMetrics.data.metrics;
+      const previous = previousSystemMetrics?.metrics || {};
+      for (const kind of ['cpu', 'memory', 'disk']) grid.appendChild(renderMetricCard(kind, metrics[kind], previous[kind]));
+      section.appendChild(grid);
+      const checkedAt = document.createElement('p');
+      checkedAt.className = 'muted';
+      checkedAt.textContent = `전체 측정 묶음 시각: ${formatMetricTime(systemMetrics.data.checkedAt)}`;
+      section.appendChild(checkedAt);
+    }
+
+    const refresh = document.createElement('button');
+    refresh.type = 'button';
+    refresh.className = 'btn';
+    refresh.textContent = systemMetrics.status === 'loading' ? '측정 중…' : '내 PC 다시 측정';
+    refresh.disabled = systemMetrics.status === 'loading';
+    refresh.addEventListener('click', () => loadSystemMetrics());
+    section.appendChild(refresh);
+    return section;
+  };
+
+  loadSystemMetrics({ initial: true });
+
   return {
     renderIdentity(input = {}) {
       const { me, devices, sessions } = input;
@@ -587,6 +760,7 @@ export function createStudentView() {
       const container = document.createElement('div');
       container.className = 'student-status';
       container.setAttribute('aria-live', 'polite');
+      container.appendChild(renderSystemMetrics());
 
       const appendHeading = (text) => {
         const heading = document.createElement('h3');
@@ -650,7 +824,7 @@ export function createStudentView() {
 
       const scopeNote = document.createElement('p');
       scopeNote.className = 'muted student-device-scope';
-      scopeNote.textContent = '내 PC 상태는 등록된 기기·현재 검증된 세션 기준입니다. CPU·메모리·디스크·방화벽은 이 앱에서 측정하지 않습니다.';
+      scopeNote.textContent = '기기·세션 상태는 제공된 연결 범위이며, CPU·메모리·디스크 실측은 이 앱의 로컬 OS 조회 결과입니다. 방화벽 상태는 측정하지 않습니다.';
       container.appendChild(scopeNote);
 
       appendHeading('위험 알림');
