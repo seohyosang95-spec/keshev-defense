@@ -159,7 +159,7 @@ powershell -NoProfile -ExecutionPolicy Bypass -File .\tools\start-alekov.ps1 -Po
 
 ## 7. 22단계 이후 총공세 작업 기록
 
-2026-10-26 현재 작업 폴더의 기준 커밋은 `6fef376`이며, 기존 폴더·제출물·인증 설정은 이동하거나 삭제하지 않았습니다.
+2026-10-26 현재 작업 폴더의 기준 커밋은 `b925374`이며, 기존 폴더·제출물·인증 설정은 이동하거나 삭제하지 않았습니다.
 
 ### 7.1 직접 개선한 기능
 
@@ -171,6 +171,7 @@ powershell -NoProfile -ExecutionPolicy Bypass -File .\tools\start-alekov.ps1 -Po
 | 설치기 재실행 | 이미 서버가 실행 중이어도 기존 서버를 재사용해 브라우저를 열도록 실행 스크립트 보완 | 새 서버를 강제로 여러 개 띄우지 않음 |
 | PC 실측 조회 | `/api/system-metrics`가 `os.cpus()`, `os.totalmem()/os.freemem()`, `fs.statfs()`로 CPU·메모리·앱 설치 드라이브를 조회 | 관리자 권한·예시 값·방화벽 측정 없음 |
 | 연결·기록 조회 | `/api/local-observation`이 일반 권한 네트워크 주소와 시작 시 읽은 Windows System·Application 경고·오류 건수를 표시하고 SDP 상태를 별도 표시 | 이벤트 건수는 침해·공격 판정이 아니며, 방화벽 프로필은 레지스트리 읽기 전용 대체 경로를 사용하고 정책값은 확인 불가로 표시 |
+| 화면 정리·오류 안내 | 학생 영역 맨 위에 기록 보기·내 PC 상태·위험 알림 우선순위를 요약하고, 각 로딩·실패 항목에 다음 행동과 키보드 포커스를 표시 | 제공 공통 화면 파일은 수정하지 않으며, 예시값으로 실패를 보정하지 않음 |
 
 ### 7.2 포장 재현 명령
 
@@ -201,6 +202,7 @@ Inno Setup 7.1.0을 공식 winget 경로로 설치한 뒤 이 명령을 실행�
 | `node --check tools\package-app.mjs` | 통과 |
 | `GET /api/system-metrics` | HTTP 200, CPU·메모리·디스크 모두 `status: measured`, 측정 시각·단위·조회 근거 확인 |
 | `GET /api/local-observation` | HTTP 200, 네트워크 `measured/connected`, 방화벽 `measured/enabled`(Domain·Standard·Public), System 경고 3·오류 6, Application 경고 8·오류 4 |
+| 학생 영역 화면 검사 | 핵심 기능 3개 요약, 로딩·오류·다음 행동 문구, native 버튼·`aria-describedby`·포커스 스타일 확인 |
 | 기본 서버 5192 정적 문서·appearance 응답 | HTTP 200 |
 | 데모 서버 5193의 `/api/me`, `/api/apps`, `/api/events` | HTTP 200, 예제 자료 확인 |
 | 기본 서버의 운영 연결 | `ENGINE_NOT_CONNECTED`, 실제 계정·SDP 자료 미확인 |
