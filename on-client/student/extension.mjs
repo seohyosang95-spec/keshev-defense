@@ -359,6 +359,67 @@ export function createStudentView({ api, onChange } = {}) {
     return section;
   };
 
+  const renderLaunchGuide = () => {
+    const section = document.createElement('details');
+    section.className = 'student-launch-guide';
+    section.open = true;
+
+    const summary = document.createElement('summary');
+    summary.textContent = '케셰브 실행 안내';
+    section.appendChild(summary);
+
+    const intro = document.createElement('p');
+    intro.className = 'muted';
+    intro.textContent = '처음 보는 사람도 아래 순서만 따라 하면 앱을 실행하고 정상 여부를 확인할 수 있습니다.';
+    section.appendChild(intro);
+
+    const steps = document.createElement('ol');
+    [
+      '설치 프로그램을 사용했다면 바탕화면 또는 시작 메뉴의 「케셰브」 바로가기를 엽니다.',
+      '설치 묶음을 직접 사용하는 경우 앱 폴더에서 launch-keshev.ps1을 실행합니다.',
+      '브라우저에서 http://127.0.0.1:5189/ 을 열고 「보호 현황」과 학생 상태 영역이 보이는지 확인합니다.',
+    ].forEach((text) => {
+      const item = document.createElement('li');
+      item.textContent = text;
+      steps.appendChild(item);
+    });
+    section.appendChild(steps);
+
+    const commandLabel = document.createElement('p');
+    commandLabel.textContent = 'PowerShell에서 직접 실행할 때:';
+    section.appendChild(commandLabel);
+    const command = document.createElement('code');
+    command.className = 'student-launch-command';
+    command.textContent = 'powershell -NoProfile -ExecutionPolicy Bypass -File .\\launch-keshev.ps1';
+    section.appendChild(command);
+
+    const checkHeading = document.createElement('h4');
+    checkHeading.textContent = '정상 실행 확인';
+    section.appendChild(checkHeading);
+    const checkList = document.createElement('ul');
+    [
+      '상단에 앱 화면이 열리고 「보호 현황」을 볼 수 있습니다.',
+      '「내 PC 상태」에서 CPU·메모리·디스크 실측값과 측정 시각을 확인합니다.',
+      '「연결 없음」은 앱 서버 오류가 아니라 운영 계정·SDP 연결이 아직 준비되지 않았다는 뜻일 수 있습니다.',
+    ].forEach((text) => {
+      const item = document.createElement('li');
+      item.textContent = text;
+      checkList.appendChild(item);
+    });
+    section.appendChild(checkList);
+
+    const problem = document.createElement('p');
+    problem.className = 'student-next-action';
+    problem.textContent = '실행에 실패하면 보안 설정을 끄지 말고 오류 문구 전체를 보관하세요. 포트 5189가 사용 중이면 -Port 5190으로 실행하고 브라우저 주소도 :5190으로 바꿉니다.';
+    section.appendChild(problem);
+
+    const documents = document.createElement('p');
+    documents.className = 'muted';
+    documents.textContent = '전체 안내: docs\\STUDENT_LAUNCH_GUIDE.md · 설치 묶음 안내: INSTALL.md';
+    section.appendChild(documents);
+    return section;
+  };
+
   const renderLocalObservation = (mode) => {
     const section = document.createElement('section');
     section.className = 'student-local-observation';
@@ -1058,6 +1119,7 @@ export function createStudentView({ api, onChange } = {}) {
       const container = document.createElement('div');
       container.className = 'student-status';
       container.setAttribute('aria-live', 'polite');
+      container.appendChild(renderLaunchGuide());
       container.appendChild(renderFeatureSummary(Array.isArray(notifications) ? notifications : []));
       container.appendChild(renderSystemMetrics());
       container.appendChild(renderLocalObservation(mode));
