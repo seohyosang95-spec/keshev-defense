@@ -33,6 +33,33 @@ const STATE_NAMES = { access: '접속', session: '세션', device: '기기' };
 const KIND_LABELS ={ access: '접속 기록', xdr: 'XDR 사건' };
 
 const STUDENT_GET_PATHS = ['/api/me', '/api/apps', '/api/events', '/api/devices', '/api/sessions', '/api/vulnerabilities'];
+const APPEARANCE_COLOR = /^#[0-9a-f]{6}$/i;
+
+async function loadAppearance() {
+  try {
+    const response = await fetch('/student/appearance.json', { cache: 'no-store' });
+    if (!response.ok) return;
+    const appearance = await response.json();
+    if (!appearance || appearance.schema !== 'keshev.appearance.v1') return;
+    const root = document.documentElement;
+    const theme = appearance.theme || {};
+    const themeVariables = {
+      accent: '--accent',
+      student: '--student',
+      surface: '--surface',
+      background: '--bg',
+    };
+    for (const [field, variable] of Object.entries(themeVariables)) {
+      if (typeof theme[field] === 'string' && APPEARANCE_COLOR.test(theme[field])) root.style.setProperty(variable, theme[field]);
+    }
+    if (appearance.layout === 'dashboard') root.dataset.layout = 'dashboard';
+    if (typeof appearance.name === 'string' && appearance.name.length > 0 && appearance.name.length <= 80) {
+      document.title = appearance.name;
+    }
+  } catch {
+    // 디자인 설정을 읽지 못해도 제공 화면과 데이터 조회는 계속한다.
+  }
+}
 
 const RESOURCE_LABELS = {
   me: '로그인 정보',
@@ -1329,6 +1356,7 @@ async function loadAll() {
 }
 
 function init() {
+  loadAppearance();
   setupNav();
   $('refresh').addEventListener('click', () => loadAll());
   $('diag-load').addEventListener('click', () => loadDiagnostics());

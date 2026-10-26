@@ -156,3 +156,47 @@ powershell -NoProfile -ExecutionPolicy Bypass -File .\tools\start-alekov.ps1 -Po
 - 서버가 반환한 503 연결 오류 뒤 실제 계정 연결 복구
 
 따라서 이번 기록은 “같은 커밋을 별도 폴더에서 실행 절차에 따라 점검한 재현 기록”이며, 22단계 원문 검토나 로컬 서버 응답을 실제 운영 인증·v1.0 자동 인증·보안 조치 성공으로 표현하지 않습니다.
+
+## 7. 22단계 이후 총공세 작업 기록
+
+2026-10-26 현재 작업 폴더의 마지막 기준 커밋은 `078fd32`이며, 아래 변경은 아직 별도 커밋하기 전의 작업 트리에서 확인했습니다. 기존 폴더·제출물·인증 설정은 이동하거나 삭제하지 않았습니다.
+
+### 7.1 직접 개선한 기능
+
+| 기능 | 변경 내용 | 사실 범위 |
+|---|---|---|
+| 기록 보기 | 현재 조회 범위 요약, XDR·거부·unknown 건수, 기존 종류·앱·접속 상태 필터와 상세 보기 유지 | 서버가 전달한 기록만 계산하며 전체 과거 로그를 뜻하지 않음 |
+| 내 PC 상태 | 기기·세션 표시 범위를 명시하고 OS 지표 미수집을 안내 | CPU·메모리·디스크·방화벽은 측정하지 않음 |
+| 위험 알림 | 오류·비준수 기기·만료 세션·XDR·unknown 상태를 위험도와 다음 확인 단계로 구분 | 알림은 현재 조회 범위와 제공된 상태에만 근거함 |
+
+### 7.2 포장 재현 명령
+
+```powershell
+npm run check
+npm run package-app
+```
+
+`npm run package-app`은 `dist\keshev-package`에 `APP_PACKAGE_MANIFEST.json`, `INSTALL.md`, `launch-keshev.ps1`과 실행에 필요한 폴더를 생성합니다. `dist\`는 `.gitignore`로 제출 커밋에서 제외합니다.
+
+설치 프로그램 컴파일 명령은 다음과 같습니다.
+
+```powershell
+npm run build-installer
+```
+
+현재 환경에서는 `ISCC.exe`가 설치되지 않아 이 명령은 설치 프로그램을 만들지 않고, Inno Setup Compiler가 필요하다는 오류로 종료됩니다. Inno Setup 설치 후 같은 명령을 다시 실행해야 `dist\installer\KeshevSetup-0.2.11.exe`와 SHA-256을 확인할 수 있습니다.
+
+### 7.3 실제 확인 결과
+
+| 확인 | 결과 |
+|---|---|
+| `npm run check` | 통과 |
+| `node --check public\app.js` | 통과 |
+| `node --check src\server.mjs` | 통과 |
+| `node --check tools\package-app.mjs` | 통과 |
+| 기본 서버 5192 정적 문서·appearance 응답 | HTTP 200 |
+| 데모 서버 5193의 `/api/me`, `/api/apps`, `/api/events` | HTTP 200, 예제 자료 확인 |
+| 기본 서버의 운영 연결 | `ENGINE_NOT_CONNECTED`, 실제 계정·SDP 자료 미확인 |
+| Inno Setup 설치 프로그램 | `ISCC.exe` 부재로 미컴파일 |
+
+데모 자료는 실제 PC 상태·실제 보안 기록·실제 조치 성공을 뜻하지 않습니다. 설치 프로그램 컴파일과 새 경로에서 설치·실행·제거하는 과정은 Inno Setup을 준비한 뒤 별도로 기록해야 합니다.

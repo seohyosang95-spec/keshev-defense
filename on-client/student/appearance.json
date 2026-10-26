@@ -1,0 +1,21 @@
+{
+  "schema": "keshev.appearance.v1",
+  "name": "케셰브",
+  "subtitle": "ZTNA & XDR 보안 Agent",
+  "layout": "dashboard",
+  "theme": {
+    "accent": "#2357c6",
+    "student": "#6b3fb3",
+    "surface": "#ffffff",
+    "background": "#f5f6f8"
+  },
+  "navigation": [
+    { "id": "protection", "label": "보호 현황" },
+    { "id": "apps", "label": "업무 앱" },
+    { "id": "records", "label": "보안 기록" }
+  ],
+  "scope": {
+    "deviceMetrics": false,
+    "deviceMetricsNote": "CPU·메모리·디스크·방화벽은 이 앱에서 측정하지 않습니다."
+  }
+}

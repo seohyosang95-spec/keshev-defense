@@ -68,6 +68,31 @@ function formatEventKind(kind) {
   return kind ? `${kind}(${kind})` : '확인 불가(unknown)';
 }
 
+function riskLevel(notification = {}) {
+  const resource = notification.resource;
+  const code = notification.code;
+  if (resource === 'events' && code === 'xdr') return 'high';
+  if (resource === 'devices' && code === 'noncompliant') return 'high';
+  if (resource === 'sessions' && ['expired', 'revoked'].includes(code)) return 'high';
+  if (code === 'TIMEOUT' || code === 'REQUEST_TIMEOUT') return 'attention';
+  if (code === 'unknown' || code === 'UNVERIFIED' || resource === 'events') return 'attention';
+  return 'notice';
+}
+
+function riskLevelLabel(level) {
+  if (level === 'high') return '높은 주의';
+  if (level === 'attention') return '확인 필요';
+  return '알림';
+}
+
+function riskNextStep(resource, level) {
+  if (resource === 'devices') return '기기 상태와 연결 설정을 확인하세요.';
+  if (resource === 'sessions') return '세션 만료·철회 여부를 확인하고 필요하면 다시 연결하세요.';
+  if (resource === 'events') return '기록의 근거와 접속·세션·기기 상태를 확인하세요.';
+  if (level === 'high') return '원인과 영향을 확인한 뒤 담당자에게 전달하세요.';
+  return '위쪽의 다시 불러오기 버튼을 사용해 해당 자료를 직접 확인하세요.';
+}
+
 export function createStudentView() {
   return {
     renderIdentity(input = {}) {
@@ -283,6 +308,24 @@ export function createStudentView() {
           const timeB = new Date(b.at).getTime();
           return timeB - timeA;
         });
+
+        const summary = document.createElement('div');
+        summary.className = 'student-record-summary';
+        summary.setAttribute('aria-label', '보안 기록 요약');
+        const xdrCount = events.filter((event) => event.kind === 'xdr').length;
+        const unknownCount = events.filter((event) => Object.values(event.state || {}).includes('unknown')).length;
+        const deniedCount = events.filter((event) => event.state?.access === 'denied').length;
+        const summaryTitle = document.createElement('h3');
+        summaryTitle.textContent = '기록 보기 요약';
+        summary.appendChild(summaryTitle);
+        const summaryText = document.createElement('p');
+        summaryText.textContent = `현재 확인된 ${events.length}건 · XDR ${xdrCount}건 · 접속 거부 ${deniedCount}건 · 확인 불가 상태 포함 ${unknownCount}건`;
+        summary.appendChild(summaryText);
+        const coverageText = document.createElement('p');
+        coverageText.className = 'muted';
+        coverageText.textContent = '이 요약은 서버가 전달한 현재 조회 범위만 계산하며 전체 과거 기록이나 전체 PC 상태를 뜻하지 않습니다.';
+        summary.appendChild(coverageText);
+        root.appendChild(summary);
 
         // 상단 필터 선택 상자 3개
         const filterBar = document.createElement('div');
@@ -605,12 +648,25 @@ export function createStudentView() {
       });
       appendParagraph('세션은 현재 검증된 연결 하나만 표시하며 지난 세션 목록이 아닙니다.');
 
-      appendHeading('알림');
+      const scopeNote = document.createElement('p');
+      scopeNote.className = 'muted student-device-scope';
+      scopeNote.textContent = '내 PC 상태는 등록된 기기·현재 검증된 세션 기준입니다. CPU·메모리·디스크·방화벽은 이 앱에서 측정하지 않습니다.';
+      container.appendChild(scopeNote);
+
+      appendHeading('위험 알림');
       if (!Array.isArray(notifications) || notifications.length === 0) {
-        appendParagraph('알림 없음');
+        appendParagraph('표시할 위험 알림이 없습니다(현재 조회 범위 기준).');
       } else {
         notifications.forEach((notification) => {
-          const item = document.createElement('div');
+          const level = riskLevel(notification);
+          const item = document.createElement('article');
+          item.className = `student-risk-alert student-risk-alert-${level}`;
+          item.setAttribute('data-risk-level', level);
+          item.setAttribute('data-risk-resource', notification?.resource || 'unknown');
+          const levelP = document.createElement('p');
+          levelP.className = 'student-risk-alert-level';
+          levelP.textContent = riskLevelLabel(level);
+          item.appendChild(levelP);
           const resourceP = document.createElement('p');
           resourceP.textContent = `자료(resource): ${notification?.resource || '확인 불가'}`;
           item.appendChild(resourceP);
@@ -620,6 +676,10 @@ export function createStudentView() {
           const messageP = document.createElement('p');
           messageP.textContent = `메시지(message): ${notification?.message || '확인 불가'}`;
           item.appendChild(messageP);
+          const nextStepP = document.createElement('p');
+          nextStepP.className = 'student-risk-alert-next-step';
+          nextStepP.textContent = `다음 확인: ${riskNextStep(notification?.resource, level)}`;
+          item.appendChild(nextStepP);
           container.appendChild(item);
         });
       }
