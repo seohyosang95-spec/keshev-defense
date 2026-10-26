@@ -26,8 +26,16 @@ $root = $PSScriptRoot
 $start = Join-Path $root 'tools\\start-alekov.ps1'
 if (-not (Test-Path -LiteralPath $start)) { throw "실행 파일을 찾을 수 없습니다: $start" }
 & powershell -NoProfile -ExecutionPolicy Bypass -File $start -Port $Port -Background
-if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-Start-Process ("http://127.0.0.1:{0}/" -f $Port)
+$startExit = $LASTEXITCODE
+$url = "http://127.0.0.1:{0}/" -f $Port
+if ($startExit -ne 0) {
+  try {
+    $response = Invoke-WebRequest -UseBasicParsing -Uri $url -TimeoutSec 3
+    if ($response.StatusCode -eq 200) { Start-Process $url; exit 0 }
+  } catch { }
+  exit $startExit
+}
+Start-Process $url
 `, 'utf8');
 
 await writeFile(join(output, 'INSTALL.md'), `# 케셰브 설치·실행 안내
