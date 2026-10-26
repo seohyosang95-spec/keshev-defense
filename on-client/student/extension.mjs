@@ -288,8 +288,13 @@ export function createStudentView({ api, onChange } = {}) {
 
     if (metric.status === 'unavailable') {
       const reason = document.createElement('p');
+      reason.className = 'student-inline-error';
       reason.textContent = `사유: ${metric.reason || '측정할 수 없습니다.'}`;
       card.appendChild(reason);
+      const next = document.createElement('p');
+      next.className = 'student-next-action';
+      next.textContent = '다음 행동: 권한을 바꾸지 말고 다시 측정하세요.';
+      card.appendChild(next);
     } else if (previous?.status === 'measured') {
       const comparison = document.createElement('p');
       comparison.className = 'student-system-metric-comparison';
@@ -306,14 +311,64 @@ export function createStudentView({ api, onChange } = {}) {
     return card;
   };
 
+  const renderFeatureSummary = (notifications = []) => {
+    const section = document.createElement('section');
+    section.className = 'student-priority-summary';
+    section.setAttribute('aria-labelledby', 'student-priority-title');
+    const heading = document.createElement('h3');
+    heading.id = 'student-priority-title';
+    heading.textContent = '핵심 기능 3가지';
+    section.appendChild(heading);
+    const note = document.createElement('p');
+    note.className = 'muted';
+    note.textContent = '처음 사용할 때는 아래 순서로 확인하세요. 예시 값은 사용하지 않고 현재 조회 결과만 표시합니다.';
+    section.appendChild(note);
+
+    const grid = document.createElement('div');
+    grid.className = 'student-priority-grid';
+    const metricsState = systemMetrics.status === 'ok' ? '실측 완료' : systemMetrics.status === 'loading' ? '측정 중' : '확인 필요';
+    const localState = localObservation.status === 'ok' ? 'PC 조회 완료' : localObservation.status === 'loading' ? '조회 중' : '확인 필요';
+    const riskState = notifications.length > 0 ? `${notifications.length}건 확인 필요` : '현재 조회 범위 정상';
+    const features = [
+      { number: '1', title: '기록 보기', state: '보안 기록 탭', detail: '사건·근거·접속 상태를 나중에 다시 확인합니다.', className: 'student-priority-records' },
+      { number: '2', title: '내 PC 상태', state: metricsState, detail: `CPU·메모리·디스크 실측 · ${localState}`, className: 'student-priority-metrics' },
+      { number: '3', title: '위험 알림', state: riskState, detail: '주의가 필요한 자료와 다음 확인 단계를 표시합니다.', className: notifications.length > 0 ? 'student-priority-risk' : 'student-priority-safe' },
+    ];
+    features.forEach((feature) => {
+      const card = document.createElement('article');
+      card.className = `student-priority-card ${feature.className}`;
+      const number = document.createElement('span');
+      number.className = 'student-priority-number';
+      number.textContent = feature.number;
+      number.setAttribute('aria-hidden', 'true');
+      card.appendChild(number);
+      const title = document.createElement('h4');
+      title.textContent = feature.title;
+      card.appendChild(title);
+      const state = document.createElement('p');
+      state.className = 'student-priority-state';
+      state.textContent = feature.state;
+      card.appendChild(state);
+      const detail = document.createElement('p');
+      detail.className = 'muted';
+      detail.textContent = feature.detail;
+      card.appendChild(detail);
+      grid.appendChild(card);
+    });
+    section.appendChild(grid);
+    return section;
+  };
+
   const renderLocalObservation = (mode) => {
     const section = document.createElement('section');
     section.className = 'student-local-observation';
+    section.setAttribute('aria-busy', localObservation.status === 'loading' ? 'true' : 'false');
     const heading = document.createElement('h3');
     heading.textContent = '연결과 기록 · 읽기 전용 PC 조회';
     section.appendChild(heading);
     const note = document.createElement('p');
     note.className = 'muted';
+    note.id = 'student-local-observation-help';
     note.textContent = '네트워크·방화벽·Windows 기록은 이 PC에서 읽기만 합니다. Windows 경고·오류 건수는 침해나 공격 탐지 결과가 아닙니다. 값 옆 조회 시각을 확인하세요.';
     section.appendChild(note);
 
@@ -322,9 +377,15 @@ export function createStudentView({ api, onChange } = {}) {
       loading.textContent = '네트워크·방화벽·Windows 기록을 읽는 중입니다.';
       section.appendChild(loading);
     } else if (localObservation.status === 'error') {
+      section.classList.add('student-panel-error');
       const error = document.createElement('p');
+      error.className = 'student-inline-error';
       error.textContent = `PC 조회를 불러오지 못했습니다: ${localObservation.error?.message || '확인 불가'}`;
       section.appendChild(error);
+      const next = document.createElement('p');
+      next.className = 'student-next-action';
+      next.textContent = '다음 행동: 보안 설정을 바꾸지 말고 아래 「연결·기록 결과 다시 읽기」를 눌러 실패 항목을 다시 확인하세요.';
+      section.appendChild(next);
     } else if (localObservation.status === 'ok') {
       const data = localObservation.data;
       const grid = document.createElement('div');
@@ -337,8 +398,13 @@ export function createStudentView({ api, onChange } = {}) {
       networkCard.appendChild(networkTitle);
       if (data.network.status !== 'measured') {
         const unavailable = document.createElement('p');
+        unavailable.className = 'student-inline-error';
         unavailable.textContent = `확인 불가 · ${data.network.reason}`;
         networkCard.appendChild(unavailable);
+        const next = document.createElement('p');
+        next.className = 'student-next-action';
+        next.textContent = '다음 행동: 네트워크 설정을 바꾸지 말고 다시 읽기를 시도하세요.';
+        networkCard.appendChild(next);
       } else {
         const summary = document.createElement('p');
         summary.className = 'student-local-observation-value';
@@ -372,8 +438,13 @@ export function createStudentView({ api, onChange } = {}) {
       firewallCard.appendChild(firewallTitle);
       if (data.firewall.status !== 'measured') {
         const unavailable = document.createElement('p');
+        unavailable.className = 'student-inline-error';
         unavailable.textContent = `확인 불가 · ${data.firewall.reason}`;
         firewallCard.appendChild(unavailable);
+        const next = document.createElement('p');
+        next.className = 'student-next-action';
+        next.textContent = '다음 행동: 방화벽을 끄거나 바꾸지 말고 일반 권한으로 다시 읽기를 시도하세요.';
+        firewallCard.appendChild(next);
       } else {
         const summary = document.createElement('p');
         summary.className = 'student-local-observation-value';
@@ -398,7 +469,10 @@ export function createStudentView({ api, onChange } = {}) {
       eventsCard.appendChild(period);
       data.events.forEach((event) => {
         const item = document.createElement('p');
-        if (event.status !== 'measured') item.textContent = `${event.reason}`;
+        if (event.status !== 'measured') {
+          item.className = 'student-inline-error';
+          item.textContent = `${event.logName || 'Windows'} 기록 확인 불가 · ${event.reason}`;
+        }
         else item.textContent = `${event.logName}: 경고 ${event.warningCount}건 · 오류 ${event.errorCount}건`;
         eventsCard.appendChild(item);
       });
@@ -431,6 +505,7 @@ export function createStudentView({ api, onChange } = {}) {
     refresh.className = 'btn';
     refresh.textContent = localObservation.status === 'loading' ? '조회 중…' : '연결·기록 결과 다시 읽기';
     refresh.disabled = localObservation.status === 'loading';
+    refresh.setAttribute('aria-describedby', 'student-local-observation-help');
     refresh.addEventListener('click', () => loadLocalObservation());
     section.appendChild(refresh);
     return section;
@@ -439,11 +514,13 @@ export function createStudentView({ api, onChange } = {}) {
   const renderSystemMetrics = () => {
     const section = document.createElement('section');
     section.className = 'student-system-metrics';
+    section.setAttribute('aria-busy', systemMetrics.status === 'loading' ? 'true' : 'false');
     const heading = document.createElement('h3');
     heading.textContent = '내 PC 상태 · 실측값';
     section.appendChild(heading);
     const note = document.createElement('p');
     note.className = 'muted';
+    note.id = 'student-system-metrics-help';
     note.textContent = '이 값은 이 앱이 실행 중인 PC에서 일반 권한으로 직접 측정했습니다. 예시 값이 아니며, 각 항목의 측정 시각과 근거를 함께 표시합니다.';
     section.appendChild(note);
 
@@ -452,9 +529,15 @@ export function createStudentView({ api, onChange } = {}) {
       loading.textContent = 'CPU·메모리·디스크를 측정하는 중입니다.';
       section.appendChild(loading);
     } else if (systemMetrics.status === 'error') {
+      section.classList.add('student-panel-error');
       const error = document.createElement('p');
+      error.className = 'student-inline-error';
       error.textContent = `실측 결과를 불러오지 못했습니다: ${systemMetrics.error?.message || '확인 불가'}`;
       section.appendChild(error);
+      const next = document.createElement('p');
+      next.className = 'student-next-action';
+      next.textContent = '다음 행동: 예시값으로 대체하지 않고 아래 「내 PC 다시 측정」을 눌러 다시 확인하세요.';
+      section.appendChild(next);
     } else if (systemMetrics.status === 'ok') {
       const grid = document.createElement('div');
       grid.className = 'student-system-metric-grid';
@@ -473,6 +556,7 @@ export function createStudentView({ api, onChange } = {}) {
     refresh.className = 'btn';
     refresh.textContent = systemMetrics.status === 'loading' ? '측정 중…' : '내 PC 다시 측정';
     refresh.disabled = systemMetrics.status === 'loading';
+    refresh.setAttribute('aria-describedby', 'student-system-metrics-help');
     refresh.addEventListener('click', () => loadSystemMetrics());
     section.appendChild(refresh);
     return section;
@@ -974,6 +1058,7 @@ export function createStudentView({ api, onChange } = {}) {
       const container = document.createElement('div');
       container.className = 'student-status';
       container.setAttribute('aria-live', 'polite');
+      container.appendChild(renderFeatureSummary(Array.isArray(notifications) ? notifications : []));
       container.appendChild(renderSystemMetrics());
       container.appendChild(renderLocalObservation(mode));
 
@@ -1000,17 +1085,21 @@ export function createStudentView({ api, onChange } = {}) {
       const appendResource = ({ resource, title, objectName, emptyText, rowText }) => {
         appendHeading(title);
         if (!resource || resource.status === 'loading') {
-          appendParagraph(`${objectName} 불러오는 중입니다.`);
+          const loading = appendParagraph(`${objectName} 불러오는 중입니다.`);
+          loading.className = 'student-inline-loading';
           return;
         }
         if (resource.status === 'error') {
           const failure = isTimeout(resource) ? `${title} 불러오기가 시간 초과되었습니다` : `${objectName} 불러오지 못했습니다`;
-          appendParagraph(`${failure}: ${errorMessage(resource)}`);
-          appendParagraph('다시 시도는 위쪽 다시 불러오기 버튼을 직접 누르세요.');
+          const error = appendParagraph(`${failure}: ${errorMessage(resource)}`);
+          error.className = 'student-inline-error';
+          const next = appendParagraph('다음 행동: 위쪽 「다시 불러오기」 버튼을 직접 눌러 실패한 항목을 다시 확인하세요.');
+          next.className = 'student-next-action';
           return;
         }
         if (resource.status !== 'ok' || !Array.isArray(resource.data)) {
-          appendParagraph(`${title} 상태를 확인할 수 없습니다.`);
+          const unknown = appendParagraph(`${title} 상태를 확인할 수 없습니다.`);
+          unknown.className = 'student-inline-error';
           return;
         }
         if (resource.data.length === 0) {
@@ -1077,11 +1166,14 @@ export function createStudentView({ api, onChange } = {}) {
       if (!diagnostics || diagnostics.status === 'idle') {
         appendParagraph('진단 정보가 아직 불러와지지 않았습니다.');
       } else if (diagnostics.status === 'loading') {
-        appendParagraph('진단 정보를 불러오는 중입니다.');
+        const loading = appendParagraph('진단 정보를 불러오는 중입니다.');
+        loading.className = 'student-inline-loading';
       } else if (diagnostics.status === 'error') {
         const failure = isTimeout(diagnostics) ? '진단 정보 불러오기가 시간 초과되었습니다' : '진단 정보를 불러오지 못했습니다';
-        appendParagraph(`${failure}: ${errorMessage(diagnostics)}`);
-        appendParagraph('다시 시도는 위쪽 다시 불러오기 버튼을 직접 누르세요.');
+        const error = appendParagraph(`${failure}: ${errorMessage(diagnostics)}`);
+        error.className = 'student-inline-error';
+        const next = appendParagraph('다음 행동: 위쪽 「도움정보 불러오기」 버튼을 직접 눌러 다시 확인하세요.');
+        next.className = 'student-next-action';
       } else if (diagnostics.status === 'ok') {
         const data = diagnostics.data || {};
         const engine = data.engine || {};
