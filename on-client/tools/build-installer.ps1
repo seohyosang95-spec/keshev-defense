@@ -8,13 +8,20 @@ $ErrorActionPreference = 'Stop'
 
 $root = Split-Path -Parent $PSScriptRoot
 $script = Join-Path $root 'installer\keshev.iss'
-$package = Join-Path $root 'dist\keshev-package'
+$sourcePackage = Join-Path $root 'dist\keshev-package'
+$stagingRoot = Join-Path $root 'dist\installer-staging'
+$package = Join-Path $stagingRoot 'keshev-package'
 $output = Join-Path $root 'dist\installer'
 
-if (-not (Test-Path -LiteralPath $package)) {
+if (-not (Test-Path -LiteralPath $sourcePackage)) {
   & node (Join-Path $root 'tools\package-app.mjs')
   if ($LASTEXITCODE -ne 0) { throw '설치 묶음 생성에 실패했습니다.' }
 }
+if (-not (Test-Path -LiteralPath $sourcePackage)) { throw '기존 설치 묶음을 찾지 못했습니다.' }
+
+Remove-Item -LiteralPath $stagingRoot -Recurse -Force -ErrorAction SilentlyContinue
+New-Item -ItemType Directory -Path $stagingRoot -Force | Out-Null
+Copy-Item -LiteralPath $sourcePackage -Destination $package -Recurse -Force
 
 if ([string]::IsNullOrWhiteSpace($IsccPath)) {
   $command = Get-Command ISCC.exe -CommandType Application -ErrorAction SilentlyContinue | Select-Object -First 1
@@ -23,7 +30,9 @@ if ([string]::IsNullOrWhiteSpace($IsccPath)) {
 if ([string]::IsNullOrWhiteSpace($IsccPath)) {
   foreach ($candidate in @(
     'C:\Program Files (x86)\Inno Setup 6\ISCC.exe',
-    'C:\Program Files\Inno Setup 6\ISCC.exe'
+    'C:\Program Files\Inno Setup 6\ISCC.exe',
+    (Join-Path $env:LOCALAPPDATA 'Programs\Inno Setup 7\ISCC.exe'),
+    (Join-Path $env:LOCALAPPDATA 'Programs\Inno Setup 6\ISCC.exe')
   )) {
     if (Test-Path -LiteralPath $candidate) { $IsccPath = $candidate; break }
   }
@@ -39,5 +48,17 @@ if ($LASTEXITCODE -ne 0) { throw "Inno Setup 컴파일에 실패했습니다. �
 $setup = Get-ChildItem -LiteralPath $output -Filter 'KeshevSetup-*.exe' -File | Sort-Object LastWriteTime -Descending | Select-Object -First 1
 if (-not $setup) { throw '컴파일은 끝났지만 setup.exe를 찾지 못했습니다.' }
 $hash = Get-FileHash -LiteralPath $setup.FullName -Algorithm SHA256
+$hashFile = Join-Path $output ("{0}.sha256.txt" -f $setup.BaseName)
+$guideFile = Join-Path $output 'INSTALLER-GUIDE.md'
+@"
+케셰브 설치 프로그램 검증 안내
+
+설치 프로그램: $($setup.Name)
+SHA-256: $($hash.Hash)
+
+설치 프로그램은 Inno Setup 사용자 단위 설치로 만들어졌습니다. 설치 후 시작 메뉴의 케셰브 바로가기로 실행하고, Windows의 앱 제거 화면 또는 설치 폴더의 제거 프로그램으로 제거합니다.
+실행에 필요한 Node.js 22~24 계열은 받는 PC에 별도로 준비해야 합니다.
+"@ | Set-Content -LiteralPath $guideFile -Encoding UTF8
+"$($setup.Name)`nSHA-256: $($hash.Hash)`n" | Set-Content -LiteralPath $hashFile -Encoding UTF8
 Write-Output "설치 프로그램: $($setup.FullName)"
 Write-Output "SHA-256: $($hash.Hash)"

@@ -159,7 +159,7 @@ powershell -NoProfile -ExecutionPolicy Bypass -File .\tools\start-alekov.ps1 -Po
 
 ## 7. 22단계 이후 총공세 작업 기록
 
-2026-10-26 현재 작업 폴더의 마지막 기준 커밋은 `078fd32`이며, 아래 변경은 아직 별도 커밋하기 전의 작업 트리에서 확인했습니다. 기존 폴더·제출물·인증 설정은 이동하거나 삭제하지 않았습니다.
+2026-10-26 현재 작업 폴더의 기준 커밋은 `6c6574c`이며, 아래 설치기 변경은 그 이후 작업 트리에서 확인했습니다. 기존 폴더·제출물·인증 설정은 이동하거나 삭제하지 않았습니다.
 
 ### 7.1 직접 개선한 기능
 
@@ -176,7 +176,7 @@ npm run check
 npm run package-app
 ```
 
-`npm run package-app`은 `dist\keshev-package`에 `APP_PACKAGE_MANIFEST.json`, `INSTALL.md`, `launch-keshev.ps1`과 실행에 필요한 폴더를 생성합니다. `dist\`는 `.gitignore`로 제출 커밋에서 제외합니다.
+`npm run package-app`은 기존 포장 묶음인 `dist\keshev-package`에 `APP_PACKAGE_MANIFEST.json`, `INSTALL.md`, `launch-keshev.ps1`과 실행에 필요한 폴더를 생성합니다. `npm run build-installer`는 이 묶음을 `dist\installer-staging\keshev-package`에 복사해 설치 재료로 사용하며 기존 묶음은 보존합니다. `dist\`는 `.gitignore`로 제출 커밋에서 제외합니다.
 
 설치 프로그램 컴파일 명령은 다음과 같습니다.
 
@@ -184,7 +184,7 @@ npm run package-app
 npm run build-installer
 ```
 
-현재 환경에서는 `ISCC.exe`가 설치되지 않아 이 명령은 설치 프로그램을 만들지 않고, Inno Setup Compiler가 필요하다는 오류로 종료됩니다. Inno Setup 설치 후 같은 명령을 다시 실행해야 `dist\installer\KeshevSetup-0.2.11.exe`와 SHA-256을 확인할 수 있습니다.
+Inno Setup 7.1.0을 공식 winget 경로로 설치한 뒤 이 명령을 실행해 `dist\installer\KeshevSetup-0.2.11.exe`를 만들었습니다. 실제 SHA-256은 같은 폴더의 `INSTALLER-GUIDE.md`와 `KeshevSetup-0.2.11.sha256.txt`에 기록됩니다.
 
 ### 7.3 실제 확인 결과
 
@@ -197,6 +197,11 @@ npm run build-installer
 | 기본 서버 5192 정적 문서·appearance 응답 | HTTP 200 |
 | 데모 서버 5193의 `/api/me`, `/api/apps`, `/api/events` | HTTP 200, 예제 자료 확인 |
 | 기본 서버의 운영 연결 | `ENGINE_NOT_CONNECTED`, 실제 계정·SDP 자료 미확인 |
-| Inno Setup 설치 프로그램 | `ISCC.exe` 부재로 미컴파일 |
+| Inno Setup 설치 프로그램 | 컴파일 성공, `KeshevSetup-0.2.11.exe` 생성 |
+| 설치 프로그램 SHA-256 | `dist\installer\INSTALLER-GUIDE.md`와 `KeshevSetup-0.2.11.sha256.txt`에 최종 생성값 기록 |
+| 별도 재료 폴더 | `dist\installer-staging\keshev-package` 생성, 기존 `dist\keshev-package` 보존 |
+| 새 경로 설치 | 성공, 설치 파일·제거 프로그램·시작 메뉴 바로가기 확인 |
+| 설치본 실행 | 포트 5196에서 `/`, `/student/appearance.json`, `/api/diagnostics` HTTP 200 |
+| 설치본 제거 | 성공, 설치 폴더·시작 메뉴 바로가기·HKCU 제거 등록 삭제 확인 |
 
-데모 자료는 실제 PC 상태·실제 보안 기록·실제 조치 성공을 뜻하지 않습니다. 설치 프로그램 컴파일과 새 경로에서 설치·실행·제거하는 과정은 Inno Setup을 준비한 뒤 별도로 기록해야 합니다.
+데모 자료는 실제 PC 상태·실제 보안 기록·실제 조치 성공을 뜻하지 않습니다. 설치 프로그램의 설치·실행·제거 검증은 새 경로에서 완료했지만, 운영 계정·SDP·AI 연결은 별도로 확인해야 합니다.
