@@ -409,9 +409,27 @@ export function createStudentView({ api, onChange } = {}) {
     });
     section.appendChild(checkList);
 
+    const problemHeading = document.createElement('h4');
+    problemHeading.textContent = '막혔을 때';
+    section.appendChild(problemHeading);
+    const problemList = document.createElement('ul');
+    [
+      'Node.js가 없다는 메시지가 나오면 Node.js 24.19.0을 설치하고 PowerShell을 새로 연 뒤 다시 실행합니다.',
+      '지금 Node.js가 vXX라는 메시지가 나오면 Node.js 22~24 계열을 준비합니다.',
+      '포트 5189가 사용 중이면 실행 명령 끝에 -Port 5190을 붙이고 브라우저 주소도 :5190으로 바꿉니다.',
+      '앱 폴더가 아니라는 메시지가 나오면 설치된 케셰브 바로가기를 사용하거나 실제 앱 폴더에서 실행합니다.',
+      '연결 없음은 앱 서버 오류가 아닐 수 있습니다. 운영 계정·SDP 연결 상태를 별도로 확인합니다.',
+      'SmartScreen·Defender·방화벽을 끄지 말고 차단 메시지 전체를 담당자에게 전달합니다.',
+    ].forEach((text) => {
+      const item = document.createElement('li');
+      item.textContent = text;
+      problemList.appendChild(item);
+    });
+    section.appendChild(problemList);
+
     const problem = document.createElement('p');
     problem.className = 'student-next-action';
-    problem.textContent = '실행에 실패하면 보안 설정을 끄지 말고 오류 문구 전체를 보관하세요. 포트 5189가 사용 중이면 -Port 5190으로 실행하고 브라우저 주소도 :5190으로 바꿉니다.';
+    problem.textContent = '어떤 경우든 오류 문구 전체를 보관하고, 기존 프로젝트 폴더나 제출물을 지우거나 옮기지 않습니다.';
     section.appendChild(problem);
 
     const documents = document.createElement('p');
