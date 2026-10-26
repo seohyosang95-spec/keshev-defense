@@ -159,7 +159,7 @@ powershell -NoProfile -ExecutionPolicy Bypass -File .\tools\start-alekov.ps1 -Po
 
 ## 7. 22단계 이후 총공세 작업 기록
 
-2026-10-26 현재 작업 폴더의 기준 커밋은 `e6fa9be`이며, 기존 폴더·제출물·인증 설정은 이동하거나 삭제하지 않았습니다.
+2026-10-26 현재 작업 폴더의 기준 커밋은 `6fef376`이며, 기존 폴더·제출물·인증 설정은 이동하거나 삭제하지 않았습니다.
 
 ### 7.1 직접 개선한 기능
 
@@ -170,7 +170,7 @@ powershell -NoProfile -ExecutionPolicy Bypass -File .\tools\start-alekov.ps1 -Po
 | 위험 알림 | 오류·비준수 기기·만료 세션·XDR·unknown 상태를 위험도와 다음 확인 단계로 구분 | 알림은 현재 조회 범위와 제공된 상태에만 근거함 |
 | 설치기 재실행 | 이미 서버가 실행 중이어도 기존 서버를 재사용해 브라우저를 열도록 실행 스크립트 보완 | 새 서버를 강제로 여러 개 띄우지 않음 |
 | PC 실측 조회 | `/api/system-metrics`가 `os.cpus()`, `os.totalmem()/os.freemem()`, `fs.statfs()`로 CPU·메모리·앱 설치 드라이브를 조회 | 관리자 권한·예시 값·방화벽 측정 없음 |
-| 연결·기록 조회 | `/api/local-observation`이 일반 권한 네트워크 주소와 시작 시 읽은 Windows System·Application 경고·오류 건수를 표시하고 SDP 상태를 별도 표시 | 이벤트 건수는 침해·공격 판정이 아니며, 방화벽 액세스 거부는 확인 불가로 표시 |
+| 연결·기록 조회 | `/api/local-observation`이 일반 권한 네트워크 주소와 시작 시 읽은 Windows System·Application 경고·오류 건수를 표시하고 SDP 상태를 별도 표시 | 이벤트 건수는 침해·공격 판정이 아니며, 방화벽 프로필은 레지스트리 읽기 전용 대체 경로를 사용하고 정책값은 확인 불가로 표시 |
 
 ### 7.2 포장 재현 명령
 
@@ -200,7 +200,7 @@ Inno Setup 7.1.0을 공식 winget 경로로 설치한 뒤 이 명령을 실행�
 | `node --check src\server.mjs` | 통과 |
 | `node --check tools\package-app.mjs` | 통과 |
 | `GET /api/system-metrics` | HTTP 200, CPU·메모리·디스크 모두 `status: measured`, 측정 시각·단위·조회 근거 확인 |
-| `GET /api/local-observation` | HTTP 200, 네트워크 `measured/connected`, System 경고 3·오류 6, Application 경고 8·오류 4, 방화벽은 일반 권한 액세스 거부로 `unavailable` |
+| `GET /api/local-observation` | HTTP 200, 네트워크 `measured/connected`, 방화벽 `measured/enabled`(Domain·Standard·Public), System 경고 3·오류 6, Application 경고 8·오류 4 |
 | 기본 서버 5192 정적 문서·appearance 응답 | HTTP 200 |
 | 데모 서버 5193의 `/api/me`, `/api/apps`, `/api/events` | HTTP 200, 예제 자료 확인 |
 | 기본 서버의 운영 연결 | `ENGINE_NOT_CONNECTED`, 실제 계정·SDP 자료 미확인 |
@@ -212,6 +212,6 @@ Inno Setup 7.1.0을 공식 winget 경로로 설치한 뒤 이 명령을 실행�
 | 설치본 제거 | 성공, 설치 폴더·시작 메뉴 바로가기·HKCU 제거 등록 삭제 확인 |
 | 현재 설치본 재실행 | 서버가 이미 포트 5189를 사용 중인 상태에서 실행 스크립트가 정상 종료하고 HTTP 200 확인 |
 | 업데이트 설치본 실측 | 포트 5189에서 `/api/system-metrics` HTTP 200, CPU·메모리·디스크 실측값 반환 확인 |
-| 업데이트 설치본 연결·기록 | 포트 5189에서 `/api/local-observation` HTTP 200, 네트워크·System/Application 기록·방화벽 확인 불가 상태 분리 확인 |
+| 업데이트 설치본 연결·기록 | 포트 5189에서 `/api/local-observation` HTTP 200, 네트워크·System/Application 기록·방화벽 프로필 상태를 분리 확인 |
 
 데모 자료는 실제 PC 상태·실제 보안 기록·실제 조치 성공을 뜻하지 않습니다. 설치 프로그램의 설치·실행·제거 검증은 새 경로에서 완료했지만, 운영 계정·SDP·AI 연결은 별도로 확인해야 합니다.
