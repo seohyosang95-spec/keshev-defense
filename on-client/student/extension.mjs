@@ -359,6 +359,40 @@ export function createStudentView({ api, onChange } = {}) {
     return section;
   };
 
+  const renderControlHeader = () => {
+    const section = document.createElement('section');
+    section.className = 'student-control-header';
+    section.setAttribute('aria-labelledby', 'student-control-title');
+
+    const copy = document.createElement('div');
+    copy.className = 'student-control-header-copy';
+    const kicker = document.createElement('p');
+    kicker.className = 'student-control-kicker';
+    kicker.textContent = 'LOCAL OBSERVATION / READ ONLY';
+    copy.appendChild(kicker);
+
+    const title = document.createElement('h3');
+    title.id = 'student-control-title';
+    title.textContent = '케셰브 관제 보드';
+    copy.appendChild(title);
+
+    const note = document.createElement('p');
+    note.textContent = '이 PC에서 직접 읽은 상태와 제공된 연결 범위를 한 화면에서 구분해 확인합니다.';
+    copy.appendChild(note);
+    section.appendChild(copy);
+
+    const meta = document.createElement('div');
+    meta.className = 'student-control-meta';
+    ['실측값 + 측정 시각', '일반 권한', '설정 변경 없음'].forEach((text) => {
+      const pill = document.createElement('span');
+      pill.className = 'student-control-pill';
+      pill.textContent = text;
+      meta.appendChild(pill);
+    });
+    section.appendChild(meta);
+    return section;
+  };
+
   const renderLaunchGuide = () => {
     const section = document.createElement('details');
     section.className = 'student-launch-guide';
@@ -1138,6 +1172,7 @@ export function createStudentView({ api, onChange } = {}) {
       const container = document.createElement('div');
       container.className = 'student-status';
       container.setAttribute('aria-live', 'polite');
+      container.appendChild(renderControlHeader());
       container.appendChild(renderLaunchGuide());
       container.appendChild(renderFeatureSummary(Array.isArray(notifications) ? notifications : []));
       container.appendChild(renderSystemMetrics());

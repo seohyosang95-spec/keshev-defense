@@ -189,7 +189,16 @@ main:focus { outline: none; }
 .student-event-detail-area ul { margin: 4px 0 12px; padding-left: 20px; }
 
 .student-device-scope { margin-top: 8px; padding: 8px 10px; border-left: 3px solid var(--unknown); background: var(--unknown-soft); }
-.student-launch-guide { margin: 0 0 16px; padding: 14px; border: 2px solid var(--student); border-radius: var(--radius); background: var(--student-soft); }
+.student-status { display: grid; gap: 14px; }
+.student-control-header { position: relative; display: flex; justify-content: space-between; gap: 20px; overflow: hidden; margin: 0; padding: 20px 22px; border: 1px solid #27356f; border-radius: 14px; background: linear-gradient(135deg, #172554 0%, #312e81 62%, #5b3c9d 100%); color: #fff; box-shadow: 0 10px 24px rgba(23, 37, 84, 0.16); }
+.student-control-header::after { position: absolute; right: -42px; top: -64px; width: 220px; height: 220px; border: 1px solid rgba(255, 255, 255, 0.15); border-radius: 50%; box-shadow: 0 0 0 20px rgba(255, 255, 255, 0.035), 0 0 0 42px rgba(255, 255, 255, 0.025); content: ''; }
+.student-control-header-copy { position: relative; z-index: 1; max-width: 680px; }
+.student-control-kicker { margin: 0 0 8px; color: #b9c7ff; font-size: 0.72rem; font-weight: 800; letter-spacing: 0.14em; }
+.student-control-header h3 { margin: 0 0 6px; color: #fff; font-size: 1.35rem; letter-spacing: -0.02em; }
+.student-control-header p:not(.student-control-kicker) { margin: 0; color: #e3e8ff; }
+.student-control-meta { position: relative; z-index: 1; display: flex; flex-wrap: wrap; align-content: center; justify-content: flex-end; gap: 7px; max-width: 300px; }
+.student-control-pill { padding: 5px 9px; border: 1px solid rgba(255, 255, 255, 0.28); border-radius: 999px; background: rgba(255, 255, 255, 0.1); color: #fff; font-size: 0.78rem; font-weight: 700; white-space: nowrap; }
+.student-launch-guide { margin: 0; padding: 14px; border: 1px solid #c9c2df; border-radius: 12px; background: linear-gradient(180deg, #fff 0%, #fbfaff 100%); box-shadow: 0 4px 14px rgba(61, 44, 105, 0.07); }
 .student-launch-guide > summary { cursor: pointer; color: var(--text); font-size: 1.05rem; font-weight: 700; }
 .student-launch-guide > summary:focus-visible { outline: none; box-shadow: var(--focus); }
 .student-launch-guide[open] > summary { margin-bottom: 10px; }
@@ -198,11 +207,11 @@ main:focus { outline: none; }
 .student-launch-guide li { margin: 5px 0; }
 .student-launch-command { display: block; margin: 8px 0 14px; padding: 10px 12px; overflow-x: auto; border: 1px solid var(--border); border-radius: var(--radius); background: var(--surface); color: var(--text); font-family: ui-monospace, SFMono-Regular, Consolas, monospace; white-space: nowrap; }
 .student-launch-guide h4 { margin: 12px 0 4px; }
-.student-priority-summary { margin: 0 0 16px; padding: 14px; border: 2px solid var(--accent); border-radius: var(--radius); background: var(--surface); }
+.student-priority-summary { margin: 0; padding: 16px; border: 1px solid #b9c8ed; border-top: 4px solid var(--accent); border-radius: 12px; background: var(--surface); box-shadow: 0 4px 14px rgba(35, 87, 198, 0.07); }
 .student-priority-summary h3 { margin-bottom: 4px; }
 .student-priority-summary > p { margin: 5px 0; }
 .student-priority-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; margin-top: 12px; }
-.student-priority-card { position: relative; min-height: 128px; padding: 12px 12px 12px 42px; border: 1px solid var(--border); border-left: 5px solid var(--accent); border-radius: var(--radius); background: var(--bg); }
+.student-priority-card { position: relative; min-height: 128px; padding: 12px 12px 12px 42px; border: 1px solid var(--border); border-left: 5px solid var(--accent); border-radius: 10px; background: #fbfcff; box-shadow: 0 3px 10px rgba(28, 36, 48, 0.04); }
 .student-priority-card h4 { margin: 0 0 5px; color: var(--text); font-size: 1rem; }
 .student-priority-card p { margin: 4px 0; overflow-wrap: anywhere; }
 .student-priority-number { position: absolute; left: 12px; top: 12px; display: grid; place-items: center; width: 24px; height: 24px; border-radius: 50%; background: var(--accent); color: #fff; font-weight: 700; }
@@ -223,26 +232,27 @@ main:focus { outline: none; }
 .student-status .btn { min-height: 40px; }
 .student-status .btn:focus-visible, .student-status select:focus-visible { outline: none; box-shadow: var(--focus); }
 @media (max-width: 900px) { .student-priority-grid { grid-template-columns: 1fr; } }
-.student-system-metrics { margin: 0 0 16px; padding: 12px 14px; border: 1px solid var(--accent); border-radius: var(--radius); background: var(--accent-soft); }
+.student-system-metrics { margin: 0; padding: 14px; border: 1px solid #b9c8ed; border-radius: 12px; background: linear-gradient(180deg, #eef3ff 0%, #f8faff 100%); box-shadow: 0 4px 14px rgba(35, 87, 198, 0.06); }
 .student-system-metrics h3 { margin-bottom: 4px; }
 .student-system-metrics > p { margin: 5px 0; }
 .student-system-metric-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; margin: 12px 0; }
-.student-system-metric-card { min-width: 0; padding: 11px 12px; border: 1px solid var(--border); border-radius: var(--radius); background: var(--surface); }
+.student-system-metric-card { min-width: 0; padding: 12px; border: 1px solid #d4dcf1; border-radius: 10px; background: var(--surface); box-shadow: 0 2px 8px rgba(28, 36, 48, 0.04); }
 .student-system-metric-card h4 { margin: 0 0 6px; }
 .student-system-metric-card p { margin: 4px 0; overflow-wrap: anywhere; }
 .student-system-metric-value { font-size: 1.25rem; font-weight: 700; color: var(--accent); }
 .student-system-metric-comparison { color: var(--student); font-weight: 600; }
 @media (max-width: 760px) { .student-system-metric-grid { grid-template-columns: 1fr; } }
-.student-local-observation { margin: 0 0 16px; padding: 12px 14px; border: 1px solid var(--student); border-radius: var(--radius); background: var(--student-soft); }
+.student-local-observation { margin: 0; padding: 14px; border: 1px solid #c9c2df; border-radius: 12px; background: linear-gradient(180deg, #f7f2ff 0%, #fcfbff 100%); box-shadow: 0 4px 14px rgba(107, 63, 179, 0.06); }
 .student-local-observation h3 { margin-bottom: 4px; }
 .student-local-observation > p { margin: 5px 0; }
 .student-local-observation-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; margin: 12px 0; }
-.student-local-observation-card { min-width: 0; padding: 11px 12px; border: 1px solid var(--border); border-radius: var(--radius); background: var(--surface); }
+.student-local-observation-card { min-width: 0; padding: 12px; border: 1px solid #ded8ec; border-radius: 10px; background: var(--surface); box-shadow: 0 2px 8px rgba(28, 36, 48, 0.04); }
 .student-local-observation-card h4 { margin: 0 0 6px; }
 .student-local-observation-card p { margin: 4px 0; overflow-wrap: anywhere; }
 .student-local-observation-value { font-size: 1.1rem; font-weight: 700; color: var(--student); }
 .student-sdp-scope { border-left: 4px solid var(--accent); }
 @media (max-width: 760px) { .student-local-observation-grid { grid-template-columns: 1fr; } }
+@media (max-width: 760px) { .student-control-header { display: block; } .student-control-meta { justify-content: flex-start; margin-top: 14px; } }
 .student-risk-alert { margin: 8px 0; padding: 10px 12px; border: 1px solid var(--border); border-left: 4px solid var(--unknown); border-radius: var(--radius); background: var(--surface); }
 .student-risk-alert p { margin: 3px 0; overflow-wrap: anywhere; }
 .student-risk-alert-level { font-weight: 700; }
