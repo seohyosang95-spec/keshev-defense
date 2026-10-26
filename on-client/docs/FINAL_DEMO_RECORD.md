@@ -81,7 +81,7 @@ npm run build-installer
 - 실행 진입점: `launch-keshev.ps1`
 - 선언된 실행 환경: Node.js `24.19.0`
 - 설치 프로그램: `dist/installer/KeshevSetup-0.2.11.exe`
-- 설치 프로그램 SHA-256: `CF92F53DA5CD1241C9830BE7FFFB12CCBAC55679E67100C81E2E6722C1B25C82`
+- 설치 프로그램 SHA-256: 빌드 때 생성되는 `dist/installer/INSTALLER-GUIDE.md`와 `dist/installer/KeshevSetup-0.2.11.sha256.txt`에서 확인
 
 `APP_PACKAGE_MANIFEST.json`에는 `source.git.head` 필드가 없습니다. 따라서 manifest만으로 커밋 동일성을 증명하지 않습니다. 앱 기능 코드는 `1f3a725`에 있고, 이후 문서만 추가한 커밋에서 깨끗한 작업 폴더를 확인한 뒤 같은 소스 트리로 포장했습니다.
 
