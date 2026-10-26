@@ -21,7 +21,7 @@ ChangesAssociations=no
 CloseApplications=no
 
 [Tasks]
-Name: "desktopicon"; Description: "바탕화면에 케셰브 바로가기 만들기"; GroupDescription: "추가 바로가기:"; Flags: unchecked
+Name: "desktopicon"; Description: "바탕화면에 케셰브 바로가기 만들기"; GroupDescription: "추가 바로가기:"
 
 [Files]
 Source: "..\dist\installer-staging\keshev-package\*"; DestDir: "{app}"; Flags: recursesubdirs createallsubdirs ignoreversion
