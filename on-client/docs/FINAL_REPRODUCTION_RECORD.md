@@ -159,7 +159,7 @@ powershell -NoProfile -ExecutionPolicy Bypass -File .\tools\start-alekov.ps1 -Po
 
 ## 7. 22단계 이후 총공세 작업 기록
 
-2026-10-26 현재 작업 폴더의 기준 커밋은 `6c6574c`이며, 아래 설치기 변경은 그 이후 작업 트리에서 확인했습니다. 기존 폴더·제출물·인증 설정은 이동하거나 삭제하지 않았습니다.
+2026-10-26 현재 작업 폴더의 기준 커밋은 `60ebcf5`이며, 기존 폴더·제출물·인증 설정은 이동하거나 삭제하지 않았습니다.
 
 ### 7.1 직접 개선한 기능
 
@@ -168,6 +168,7 @@ powershell -NoProfile -ExecutionPolicy Bypass -File .\tools\start-alekov.ps1 -Po
 | 기록 보기 | 현재 조회 범위 요약, XDR·거부·unknown 건수, 기존 종류·앱·접속 상태 필터와 상세 보기 유지 | 서버가 전달한 기록만 계산하며 전체 과거 로그를 뜻하지 않음 |
 | 내 PC 상태 | 기기·세션 표시 범위를 명시하고 OS 지표 미수집을 안내 | CPU·메모리·디스크·방화벽은 측정하지 않음 |
 | 위험 알림 | 오류·비준수 기기·만료 세션·XDR·unknown 상태를 위험도와 다음 확인 단계로 구분 | 알림은 현재 조회 범위와 제공된 상태에만 근거함 |
+| 설치기 재실행 | 이미 서버가 실행 중이어도 기존 서버를 재사용해 브라우저를 열도록 실행 스크립트 보완 | 새 서버를 강제로 여러 개 띄우지 않음 |
 
 ### 7.2 포장 재현 명령
 
@@ -199,9 +200,11 @@ Inno Setup 7.1.0을 공식 winget 경로로 설치한 뒤 이 명령을 실행�
 | 기본 서버의 운영 연결 | `ENGINE_NOT_CONNECTED`, 실제 계정·SDP 자료 미확인 |
 | Inno Setup 설치 프로그램 | 컴파일 성공, `KeshevSetup-0.2.11.exe` 생성 |
 | 설치 프로그램 SHA-256 | `dist\installer\INSTALLER-GUIDE.md`와 `KeshevSetup-0.2.11.sha256.txt`에 최종 생성값 기록 |
+| 현재 설치 프로그램 SHA-256 | `0F91EE8771AE072BFF892709C1383F72561CFBFCF89AB7856D9712A0C97FD1FA` |
 | 별도 재료 폴더 | `dist\installer-staging\keshev-package` 생성, 기존 `dist\keshev-package` 보존 |
 | 새 경로 설치 | 성공, 설치 파일·제거 프로그램·시작 메뉴 바로가기 확인 |
 | 설치본 실행 | 포트 5196에서 `/`, `/student/appearance.json`, `/api/diagnostics` HTTP 200 |
 | 설치본 제거 | 성공, 설치 폴더·시작 메뉴 바로가기·HKCU 제거 등록 삭제 확인 |
+| 현재 설치본 재실행 | 서버가 이미 포트 5189를 사용 중인 상태에서 실행 스크립트가 정상 종료하고 HTTP 200 확인 |
 
 데모 자료는 실제 PC 상태·실제 보안 기록·실제 조치 성공을 뜻하지 않습니다. 설치 프로그램의 설치·실행·제거 검증은 새 경로에서 완료했지만, 운영 계정·SDP·AI 연결은 별도로 확인해야 합니다.
