@@ -264,8 +264,8 @@ export function createOnServer(serverOptions={}) {
   if(nativeDescriptor){if(!Object.hasOwn(nativeDescriptor,'value')||!nativeDescriptor.enumerable)throw Error('INVALID_SERVER_AI_CONFIGURATION');
     nativeConfiguration=captureNativeHostConfiguration(nativeDescriptor.value);}
   else for(let p=Object.getPrototypeOf(serverOptions);p;p=Object.getPrototypeOf(p)){if(types.isProxy(p)||Object.getOwnPropertyDescriptor(p,'nativeHostConfiguration'))throw Error('INVALID_SERVER_AI_CONFIGURATION');}
-  const {engine={evidenceMode:'disconnected'},actionConfiguration:givenActionConfiguration,sdpActionStartup,ai,resolveAiIdentity,readLearnerSupportIdentity,aiEnv=process.env,appCredentialVault,vaultAiConfiguration,aiConnectionConfiguration,allowLoopbackAiHttp=false,aiTimeoutMs=10000,
-    scanner=createProjectScanner(),assetsRoot=root,clock=()=>new Date(),readTimeoutMs=10000,requestTimeoutMs=15000}=serverOptions;
+  const {engine={evidenceMode:'disconnected'},actionConfiguration:givenActionConfiguration,sdpActionStartup,ai,resolveAiIdentity,readLearnerSupportIdentity,aiEnv=process.env,appCredentialVault,vaultAiConfiguration,aiConnectionConfiguration,allowLoopbackAiHttp=false,aiTimeoutMs=30000,
+    scanner=createProjectScanner(),assetsRoot=root,clock=()=>new Date(),readTimeoutMs=10000,requestTimeoutMs=45000}=serverOptions;
   if(nativeConfiguration&&(ai!==undefined||resolveAiIdentity!==undefined||readLearnerSupportIdentity!==undefined||appCredentialVault!==undefined||vaultAiConfiguration!==undefined||aiConnectionConfiguration!==undefined||typeof aiEnv.ON_AI_APP_KEY==='string'&&aiEnv.ON_AI_APP_KEY))throw Error('INVALID_SERVER_AI_CONFIGURATION');
   const nativeHost=nativeConfiguration?createNativeHostContext(nativeConfiguration):null;
   // c2(#978): host 가 sdpActionStartup({databasePath, policy})을 주면, 이 서버가 만든 SDP host engine 과 genuine native host 를
@@ -766,7 +766,7 @@ export function createOnServer(serverOptions={}) {
       send(status,{ok:false,error:{code,message,retryable:nativeAiCheck?AI_RETRYABLE.has(code):status>=500}});
     }finally{clearTimeout(requestTimer);clearTimeout(supportTimer);res.removeListener('close',disconnect);req.removeListener('aborted',disconnect);lifetime.abort();}
   });
-  server.requestTimeout=15000;server.headersTimeout=10000;
+  server.requestTimeout=requestTimeoutMs;server.headersTimeout=10000;
   server.once('close',()=>{connections.close();nativeHost?.close();for(const controller of connectionReads)controller.abort();});
   return server;
 }
