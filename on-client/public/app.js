@@ -5,7 +5,7 @@ import { normalizeScan, createVulnerabilitiesView } from '/vulnerabilities-view.
 
 const STUDENT_MODULE = '/student/extension.mjs';
 const STUDENT_PENDING = '학생 구현 대기';
-const REQUEST_TIMEOUT_MS = 10000;
+const REQUEST_TIMEOUT_MS = 30000;
 const UNVERIFIED_MESSAGE = '서버 응답 형식을 확인할 수 없습니다(확인 불가). 정상으로 간주하지 마세요.';
 
 const MODE_LABELS = {
