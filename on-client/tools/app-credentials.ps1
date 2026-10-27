@@ -161,7 +161,9 @@ public static class AlekovVaultNative {
     # Adoption is limited to an existing, empty directory owned by the execution user.
     $rootAcl=Get-Acl -LiteralPath $rootPath
     if ($rootAcl.GetOwner([Security.Principal.SecurityIdentifier]).Value -cne $ownerSid.Value -or [IO.Directory]::GetFileSystemEntries($rootPath).Length -ne 0) { Fail 'ALEKOV_VAULT_OWNER_MISMATCH' }
-    SetPrivateAcl $rootPath $true
+    $rootReady=$false
+    try { AssertAcl $rootPath; $rootReady=$true } catch { }
+    if (!$rootReady) { SetPrivateAcl $rootPath $true }
     $marker = [ordered]@{schema='alekov.app-vault.owner.v1';appId='aleph-on';audience='on-client';ownerSid=$ownerSid.Value;vaultId=[Guid]::NewGuid().ToString('D')}
     WriteNew $markerPath (Utf8 (Json $marker))
   }
